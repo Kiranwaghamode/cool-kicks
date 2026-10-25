@@ -4,6 +4,7 @@ import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { Fulfilment, Level, Size } from "@/lib/types";
+import { lineKey } from "@/lib/cart-line";
 
 /**
  * Cart state persisted to localStorage.
@@ -30,15 +31,14 @@ export type AddToCartInput = Omit<CartLine, "key" | "quantity" | "instructions">
 
 export const MAX_LINE_QUANTITY = 20;
 
-/** A line is unique by product + size + sugar + ice + instructions. */
-export function lineKey(l: Pick<CartLine, "productId" | "size" | "sugar" | "ice" | "instructions">) {
-  return [l.productId, l.size, l.sugar, l.ice, l.instructions.trim().toLowerCase()].join("|");
-}
+export { lineKey };
 
 type CartState = {
   lines: CartLine[];
   fulfilment: Fulfilment;
   couponCode: string;
+  pincode: string;
+  setPincode: (pin: string) => void;
   add: (item: AddToCartInput) => void;
   setQuantity: (key: string, quantity: number) => void;
   remove: (key: string) => void;
@@ -55,6 +55,8 @@ export const useCart = create<CartState>()(
       lines: [],
       fulfilment: "PICKUP",
       couponCode: "",
+      pincode: "",
+      setPincode: (pincode) => set({ pincode: pincode.replace(/\D/g, "").slice(0, 6) }),
       add: (item) => {
         const instructions = (item.instructions ?? "").trim().slice(0, 200);
         const key = lineKey({ ...item, instructions });
