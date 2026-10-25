@@ -53,7 +53,7 @@ export function ProductConfigurator({
   const canAdd = product.isAvailable && !!selected?.isAvailable;
   const total = (selected?.price ?? 0) * qty;
 
-  function add() {
+  function add(origin?: HTMLElement | null) {
     if (!selected || !canAdd) return;
     addToCart({
       productId: product.id,
@@ -66,7 +66,7 @@ export function ProductConfigurator({
       instructions,
       quantity: qty,
       unitPrice: selected.price,
-    });
+    }, origin);
     setQty(1);
     setInstructions("");
     onAdded?.();
@@ -135,7 +135,7 @@ export function ProductConfigurator({
         )}
       >
         <QuantityStepper value={qty} onChange={setQty} max={MAX_LINE_QUANTITY} />
-        <Button size="lg" className="flex-1 px-4" disabled={!canAdd} onClick={add} data-add-to-cart>
+        <Button size="lg" className="flex-1 px-4" disabled={!canAdd} onClick={(e) => add(e.currentTarget)} data-add-to-cart>
           {canAdd ? (
             <>
               <ShoppingBag className="size-5" aria-hidden />

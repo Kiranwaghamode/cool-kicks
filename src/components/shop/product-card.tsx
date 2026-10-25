@@ -32,7 +32,7 @@ export function ProductCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col rounded-card border border-white/60 bg-surface p-3 shadow-warm-soft transition duration-300 md:p-4",
+        "group relative flex h-full flex-col rounded-card border border-white/60 bg-surface p-3 shadow-warm-soft transition duration-300 active:scale-[0.98] md:p-4",
         unavailable ? "opacity-70" : "hover:-translate-y-1 hover:shadow-warm",
         className,
       )}
@@ -99,8 +99,9 @@ export function ProductCard({
         size="sm"
         className="relative z-10 mt-3 w-full"
         disabled={unavailable || !product.defaultSize}
-        onClick={() => {
+        onClick={(e) => {
           if (!product.defaultSize || product.defaultPrice === null) return;
+          const origin = e.currentTarget;
           addToCart({
             productId: product.id,
             slug: product.slug,
@@ -110,7 +111,7 @@ export function ProductCard({
             sugar: "REGULAR",
             ice: "REGULAR",
             unitPrice: product.defaultPrice,
-          });
+          }, origin);
         }}
         aria-label={unavailable ? `${product.name} is unavailable` : `Add ${product.name} to cart`}
       >

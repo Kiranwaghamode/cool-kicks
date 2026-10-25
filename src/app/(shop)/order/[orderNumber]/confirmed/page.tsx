@@ -7,6 +7,7 @@ import { CopyButton } from "@/components/shop/copy-button";
 import { WhatsAppIcon } from "@/components/shop/icons";
 import { BillSummary } from "@/components/shop/bill-summary";
 import { ConfirmationEffects } from "./effects";
+import { Confetti } from "@/components/shop/motion/confetti";
 import { getCustomerOrder } from "@/server/orders";
 import { isRecentOrder } from "@/server/recent-orders";
 import { getShopSettings } from "@/server/settings";
@@ -33,9 +34,10 @@ export default async function OrderConfirmedPage({ params }: PageProps<"/order/[
   return (
     <div className="container-page py-8 md:py-14">
       <ConfirmationEffects />
+      <Confetti />
       <div className="mx-auto max-w-2xl">
         <div className="rounded-[28px] bg-surface p-6 text-center shadow-warm md:p-10">
-          <div className="mx-auto flex size-20 items-center justify-center rounded-full bg-brand text-white shadow-glow" data-success-badge>
+          <div className="mx-auto flex size-20 animate-pop items-center justify-center rounded-full bg-brand text-white shadow-glow motion-safe:animate-[pop_600ms_ease-out]" data-success-badge>
             <CheckCircle2 className="size-11" aria-hidden />
           </div>
           <h1 className="mt-5 text-headline-sm font-extrabold md:text-headline">Order placed!</h1>

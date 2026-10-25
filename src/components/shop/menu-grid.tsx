@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ProductCard } from "@/components/shop/product-card";
+import { StaggerGrid } from "@/components/shop/motion/reveal";
 import { BottomSheet } from "@/components/ui/modal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -33,11 +34,11 @@ export function MenuGrid({ products }: { products: ProductCardData[] }) {
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+      <StaggerGrid key={products.map((p) => p.id).join(",")} className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
         {products.map((p, i) => (
           <ProductCard key={p.id} product={p} priority={i < 4} onOpen={open} />
         ))}
-      </div>
+      </StaggerGrid>
 
       <BottomSheet open={!!slug} onClose={() => setSlug(null)} title={data?.name ?? "Loading drink"}>
         {error ? (

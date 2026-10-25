@@ -27,6 +27,9 @@ import {
 import { getPublicShopInfo } from "@/server/settings";
 import { couponConditions, couponHeadline } from "@/lib/coupons";
 import { WEEKDAYS, WEEKDAY_LABELS } from "@/lib/shop-hours";
+import { HeroMotion } from "@/components/shop/motion/hero-motion";
+import { Reveal, StaggerGrid } from "@/components/shop/motion/reveal";
+import { Cherry, Citrus, Leaf } from "lucide-react";
 
 export const metadata: Metadata = {
   title: { absolute: "Cool Kick – Fresh & Chilled Juices | Order Online" },
@@ -104,7 +107,13 @@ export default async function HomePage() {
       />
 
       {/* ───────── Hero ───────── */}
-      <section className="overflow-hidden bg-gradient-to-b from-cream to-cream-50">
+      <section data-hero className="relative overflow-hidden bg-gradient-to-b from-cream to-cream-50">
+        <HeroMotion />
+        <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
+          <Citrus data-parallax="18" className="absolute top-24 left-[46%] size-10 text-mango/70" />
+          <Leaf data-parallax="28" className="absolute bottom-24 left-[42%] size-8 text-brand/60" />
+          <Cherry data-parallax="22" className="absolute top-16 right-6 size-9 text-melon/60" />
+        </div>
         <div className="container-page grid items-center gap-8 py-8 md:py-14 lg:grid-cols-2 lg:gap-12 lg:py-20">
           <div className="text-center lg:text-left" data-hero-copy>
             <p className="mb-5 hidden items-center gap-2 rounded-full bg-cream px-3 py-1.5 text-[11px] font-bold tracking-wider text-warning uppercase lg:inline-flex">
@@ -156,7 +165,7 @@ export default async function HomePage() {
                 data-hero-image
               />
             </div>
-            <div className="glass absolute -top-3 right-2 hidden items-center gap-3 rounded-2xl px-4 py-2.5 shadow-glass sm:flex lg:-right-4">
+            <div data-hero-chip className="glass absolute -top-3 right-2 hidden items-center gap-3 rounded-2xl px-4 py-2.5 shadow-glass sm:flex lg:-right-4">
               <span className="flex size-9 items-center justify-center rounded-full bg-brand text-white">
                 <ShieldCheck className="size-5" aria-hidden />
               </span>
@@ -165,7 +174,7 @@ export default async function HomePage() {
                 <span className="block text-sm text-ink-soft">RO ice · sealed cups</span>
               </span>
             </div>
-            <div className="glass absolute -bottom-4 left-2 hidden items-center gap-3 rounded-2xl px-4 py-2.5 shadow-glass sm:flex lg:-left-6">
+            <div data-hero-chip className="glass absolute -bottom-4 left-2 hidden items-center gap-3 rounded-2xl px-4 py-2.5 shadow-glass sm:flex lg:-left-6">
               <span className="flex size-9 items-center justify-center rounded-full bg-mango text-ink">
                 <Zap className="size-5" aria-hidden />
               </span>
@@ -232,19 +241,19 @@ export default async function HomePage() {
       {/* ───────── Most popular ───────── */}
       <section className="py-14 md:py-20" aria-labelledby="popular-heading">
         <div className="container-page">
-          <SectionHeading
+          <Reveal><SectionHeading
             eyebrow="Our menu"
             title="The Most Popular Juices"
             subtitle="Sip into customer-favourite blends made with seasonal fruit and hand-crushed ice."
-          />
+          /></Reveal>
           <span id="popular-heading" className="sr-only">
             Most popular drinks
           </span>
-          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
+          <StaggerGrid className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-3 lg:grid-cols-4">
             {bestsellers.map((p, i) => (
               <ProductCard key={p.id} product={p} priority={i < 2} />
             ))}
-          </div>
+          </StaggerGrid>
           <div className="mt-10 flex justify-center">
             <LinkButton href="/menu" variant="outline" size="lg">
               View full menu <ArrowRight className="size-5" aria-hidden />
@@ -256,7 +265,7 @@ export default async function HomePage() {
       {/* ───────── Why choose us ───────── */}
       <section className="bg-cream/60 py-14 md:py-20" aria-labelledby="why-heading">
         <div className="container-page">
-          <div className="rounded-[28px] bg-surface p-6 shadow-warm-soft md:bg-transparent md:p-0 md:shadow-none">
+          <Reveal className="rounded-[28px] bg-surface p-6 shadow-warm-soft md:bg-transparent md:p-0 md:shadow-none">
             <SectionHeading eyebrow="Quality promise" title="The Cool Kick Standard" subtitle="We treat every juice as fresh, honest nourishment." />
             <span id="why-heading" className="sr-only">
               Why choose us
@@ -274,7 +283,7 @@ export default async function HomePage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Reveal>
         </div>
       </section>
 
@@ -282,7 +291,7 @@ export default async function HomePage() {
       {featured && (
         <section className="py-14 md:py-20" aria-labelledby="offer-heading">
           <div className="container-page space-y-5">
-            <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-brand via-mango to-mango-soft p-6 shadow-warm md:p-12">
+            <Reveal className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-brand via-mango to-mango-soft p-6 shadow-warm md:p-12">
               <Snowflake
                 aria-hidden
                 className="pointer-events-none absolute -right-6 -bottom-8 size-40 text-white/30 md:size-56"
@@ -309,7 +318,7 @@ export default async function HomePage() {
                   <CopyButton value={featured.code} label="Copy code" />
                 </div>
               </div>
-            </div>
+            </Reveal>
             {otherCoupons.length > 0 && (
               <ul className="grid gap-4 sm:grid-cols-2">
                 {otherCoupons.map((c) => (
@@ -354,9 +363,9 @@ export default async function HomePage() {
 
       {/* ───────── Location ───────── */}
       <section className="py-14 md:py-20" aria-label="Shop location">
-        <div className="container-page">
+        <Reveal className="container-page">
           <LocationCard shop={shop} />
-        </div>
+        </Reveal>
       </section>
     </>
   );

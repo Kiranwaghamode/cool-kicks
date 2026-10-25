@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "@/components/ui/toast";
+import { MotionProvider } from "@/components/shop/motion/motion-provider";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -34,8 +35,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en-IN" className={`${jakarta.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
-        {children}
-        <Toaster />
+        <MotionProvider>
+          {children}
+          <Toaster />
+        </MotionProvider>
       </body>
     </html>
   );
