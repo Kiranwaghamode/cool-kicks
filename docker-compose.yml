@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: coolkick-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: coolkick
+      POSTGRES_PASSWORD: coolkick
+      POSTGRES_DB: coolkick
+    ports:
+      - "5433:5432"
+    volumes:
+      - coolkick-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U coolkick"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  coolkick-db-data:
