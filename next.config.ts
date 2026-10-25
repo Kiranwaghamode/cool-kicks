@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
   },
   turbopack: {
+    root: process.cwd(),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],

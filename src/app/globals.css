@@ -1,26 +1,187 @@
 @import "tailwindcss";
 
+/*
+ * Cool Kick design tokens – extracted from the Stitch "Mobile-Home" / "Desktop-Home" screens.
+ * Brand: fresh lime green CTAs, mango-yellow accents, watermelon promos, ice-blue chill chips,
+ * on a sunny cream canvas. Light theme only (the brand is built around the cream canvas).
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --brand: #6ba32e; /* Lime green – primary CTA */
+  --brand-dark: #558422; /* hover / pressed */
+  --brand-deep: #3c6a00; /* green text on light backgrounds (AA) */
+  --brand-soft: #eaf5dc;
+
+  --mango: #f7b733; /* hero sun circle, accents */
+  --mango-deep: #f2a93b;
+  --tangerine: #ff8a00; /* tags */
+  --mango-soft: #fff1d0;
+  --badge: #ffbe3b; /* cart badge */
+
+  --melon: #ff4d6d; /* promo badges */
+  --melon-deep: #c81e45;
+  --melon-soft: #ffe4e9;
+
+  --ice: #dff6ff;
+  --ice-deep: #0b6b85;
+
+  --cream: #fff6d9;
+  --cream-50: #fffbef;
+  --surface: #ffffff;
+
+  --ink: #111111;
+  --ink-soft: #555555;
+  --ink-muted: #6e6e6e;
+  --line: rgb(17 17 17 / 0.08);
+  --line-strong: #e5e7eb;
+
+  --success: #3c6a00;
+  --danger: #ba1a1a;
+  --danger-soft: #ffdad6;
+  --warning: #8a5a00;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-brand: var(--brand);
+  --color-brand-dark: var(--brand-dark);
+  --color-brand-deep: var(--brand-deep);
+  --color-brand-soft: var(--brand-soft);
+  --color-mango: var(--mango);
+  --color-mango-deep: var(--mango-deep);
+  --color-tangerine: var(--tangerine);
+  --color-mango-soft: var(--mango-soft);
+  --color-badge: var(--badge);
+  --color-melon: var(--melon);
+  --color-melon-deep: var(--melon-deep);
+  --color-melon-soft: var(--melon-soft);
+  --color-ice: var(--ice);
+  --color-ice-deep: var(--ice-deep);
+  --color-cream: var(--cream);
+  --color-cream-50: var(--cream-50);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
+
+  /* Typography scale from the Stitch design system */
+  --text-display: 3.5rem;
+  --text-display--line-height: 4rem;
+  --text-display--letter-spacing: -0.03em;
+  --text-display-sm: 2.375rem;
+  --text-display-sm--line-height: 2.75rem;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-headline: 2.25rem;
+  --text-headline--line-height: 2.75rem;
+  --text-headline--letter-spacing: -0.02em;
+  --text-headline-sm: 1.75rem;
+  --text-headline-sm--line-height: 2.125rem;
+  --text-headline-sm--letter-spacing: -0.01em;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-label: 0.6875rem;
+  --text-label--line-height: 0.875rem;
+  --text-label--letter-spacing: 0.05em;
+
+  --radius-card: 20px;
+  --radius-sheet: 28px;
+
+  --shadow-warm-soft: 0 8px 24px -4px rgb(242 169 59 / 0.1), 0 3px 10px -2px rgb(0 0 0 / 0.04);
+  --shadow-warm: 0 10px 30px rgb(242 169 59 / 0.14), 0 2px 8px rgb(17 17 17 / 0.04);
+  --shadow-glow: 0 10px 22px -4px rgb(107 163 46 / 0.32);
+  --shadow-glass: 0 12px 32px -6px rgb(31 41 55 / 0.1);
+  --shadow-sheet: 0 -10px 40px rgb(242 169 59 / 0.16);
+
+  --animate-pop: pop 300ms ease-out;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+  --animate-slide-up: slide-up 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  --animate-fade-in: fade-in 200ms ease-out;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to { background-position: 400px 0; }
+}
+@keyframes slide-up {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    background: var(--cream-50);
+    color: var(--ink);
+    font-family: var(--font-sans);
+  }
+  :focus-visible {
+    outline: 3px solid var(--brand);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--mango);
+    color: var(--ink);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility container-page {
+  width: 100%;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (width >= 48rem) {
+    padding-inline: 2rem;
+  }
+}
+
+@utility glass {
+  background: rgb(255 255 255 / 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@utility pb-safe {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
 }
