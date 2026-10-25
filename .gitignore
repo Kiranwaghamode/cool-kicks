@@ -43,9 +43,8 @@ next-env.d.ts
 /src/generated/prisma
 !.env.example
 
-# uploads (dev image storage)
-/public/uploads/*
-!/public/uploads/.gitkeep
+# uploaded images (STORAGE_DRIVER=local)
+/uploads/
 
 # test output
 /test-results/
