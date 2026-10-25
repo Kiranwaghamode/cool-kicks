@@ -82,16 +82,22 @@ export function RankedBars({
           <XAxis type="number" hide />
           <YAxis type="category" dataKey="label" tickLine={false} axisLine={false} width={130} tick={{ fill: "#111", fontSize: 13 }} />
           <Tooltip cursor={{ fill: "rgb(107 163 46 / 0.08)" }} content={<TooltipBox unit={unit} />} />
-          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={26}>
+          <Bar
+            dataKey="value"
+            radius={[0, 4, 4, 0]}
+            maxBarSize={26}
+            isAnimationActive={false}
+            label={{
+              position: "right",
+              fill: "#555",
+              fontSize: 12,
+              fontWeight: 600,
+              formatter: (v: unknown) => (unit === "money" ? rupeesShort(Number(v)) : String(v)),
+            }}
+          >
             {data.map((d, i) => (
               <Cell key={d.label} fill={colorBy === "category" ? CHART_COLORS[i % CHART_COLORS.length] : SINGLE} />
             ))}
-            <LabelList
-              dataKey="value"
-              position="right"
-              formatter={(v: unknown) => (unit === "money" ? rupeesShort(Number(v)) : String(v))}
-              style={{ fill: "#555", fontSize: 12, fontWeight: 600 }}
-            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>
