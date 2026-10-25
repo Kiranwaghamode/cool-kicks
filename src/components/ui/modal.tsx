@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
@@ -42,8 +42,12 @@ function useOverlay(open: boolean, onClose: () => void, panel: React.RefObject<H
   }, [open, onClose, panel]);
 }
 
+const noopSubscribe = () => () => {};
+
+/** Renders into <body> only after hydration (server and first client render match). */
 function Portal({ children }: { children: ReactNode }) {
-  if (typeof document === "undefined") return null;
+  const mounted = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  if (!mounted) return null;
   return createPortal(children, document.body);
 }
 
