@@ -152,7 +152,7 @@ export function OrderDrawer({ orderNumber, canRefund, onClose }: { orderNumber: 
                 href={whatsappLink(`91${order.customerPhone}`, customerMessage(order))}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={buttonVariants({ size: "sm", className: "bg-[#25D366] hover:bg-[#1ebe5b]" })}
+                className={buttonVariants({ size: "sm", className: "bg-whatsapp hover:bg-whatsapp-dark" })}
               >
                 <WhatsAppIcon className="size-4" /> Message
               </a>

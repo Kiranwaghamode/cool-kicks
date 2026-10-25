@@ -22,11 +22,11 @@ export default async function DashboardPage() {
       {d.pending > 0 && (
         <Link
           href="/admin/orders?status=PLACED"
-          className="mb-5 flex items-center gap-3 rounded-[20px] bg-melon px-5 py-4 font-bold text-white shadow-[0_10px_25px_rgb(255_77_109/0.3)]"
+          className="mb-5 flex items-center gap-3 rounded-[20px] bg-melon-deep px-5 py-4 font-bold text-white shadow-[0_10px_25px_rgb(255_77_109/0.3)]"
         >
           <ClipboardList className="size-5" aria-hidden />
           {d.pending} new order{d.pending === 1 ? "" : "s"} waiting to be accepted
-          <span className="ml-auto rounded-full bg-white/25 px-3 py-1 text-sm">Open orders →</span>
+          <span className="ml-auto rounded-full bg-black/20 px-3 py-1 text-sm">Open orders →</span>
         </Link>
       )}
 

@@ -6,14 +6,18 @@
  * on a sunny cream canvas. Light theme only (the brand is built around the cream canvas).
  */
 :root {
-  --brand: #6ba32e; /* Lime green – primary CTA */
-  --brand-dark: #558422; /* hover / pressed */
+  /* Primary CTA green. The Stitch lime (#6ba32e) is kept as --brand-bright for decoration;
+     --brand is deepened slightly so white button text meets WCAG AA (4.8:1). */
+  --brand: #4a7f1c;
+  --brand-bright: #6ba32e;
+  --brand-dark: #3d6b14; /* hover / pressed */
   --brand-deep: #3c6a00; /* green text on light backgrounds (AA) */
   --brand-soft: #eaf5dc;
 
   --mango: #f7b733; /* hero sun circle, accents */
   --mango-deep: #f2a93b;
-  --tangerine: #ff8a00; /* tags */
+  --tangerine: #a85400; /* orange text + tag fills (AA on cream / mango-soft and with white text) */
+  --tangerine-bright: #ff8a00; /* decorative only */
   --mango-soft: #fff1d0;
   --badge: #ffbe3b; /* cart badge */
 
@@ -43,11 +47,15 @@
 @theme inline {
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
+  --color-brand-bright: var(--brand-bright);
   --color-brand-deep: var(--brand-deep);
   --color-brand-soft: var(--brand-soft);
   --color-mango: var(--mango);
   --color-mango-deep: var(--mango-deep);
   --color-tangerine: var(--tangerine);
+  --color-tangerine-bright: var(--tangerine-bright);
+  --color-whatsapp: #117a3e;
+  --color-whatsapp-dark: #0d6332;
   --color-mango-soft: var(--mango-soft);
   --color-badge: var(--badge);
   --color-melon: var(--melon);

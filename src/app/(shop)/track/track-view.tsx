@@ -242,7 +242,7 @@ function OrderDetails({
             href={whatsappLink(whatsappNumber, `Hi Cool Kick! I need help with my order ${order.orderNumber}.`)}
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({ size: "lg", className: "bg-[#25D366] hover:bg-[#1ebe5b]" })}
+            className={buttonVariants({ size: "lg", className: "bg-whatsapp hover:bg-whatsapp-dark" })}
           >
             <WhatsAppIcon className="size-5" /> Need help? Chat on WhatsApp
           </a>

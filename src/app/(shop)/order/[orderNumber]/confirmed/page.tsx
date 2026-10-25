@@ -113,7 +113,7 @@ export default async function OrderConfirmedPage({ params }: PageProps<"/order/[
             href={whatsappLink(settings.whatsappNumber, orderWhatsappText(order))}
             target="_blank"
             rel="noopener noreferrer"
-            className={buttonVariants({ size: "lg", className: "bg-[#25D366] hover:bg-[#1ebe5b]" })}
+            className={buttonVariants({ size: "lg", className: "bg-whatsapp hover:bg-whatsapp-dark" })}
           >
             <WhatsAppIcon className="size-5" /> Send on WhatsApp
           </a>

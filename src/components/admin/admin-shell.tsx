@@ -89,7 +89,7 @@ export function AdminShell({
             <Icon className="size-5 shrink-0" aria-hidden />
             <span className="flex-1">{label}</span>
             {badge > 0 && (
-              <span className={cn("min-w-6 rounded-full px-1.5 text-center text-xs leading-5 font-bold", isActive(href) ? "bg-white/25" : "bg-melon text-white")}>
+              <span className={cn("min-w-6 rounded-full px-1.5 text-center text-xs leading-5 font-bold", isActive(href) ? "bg-black/20" : "bg-melon-deep text-white")}>
                 {badge}
               </span>
             )}

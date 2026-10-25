@@ -17,7 +17,7 @@ export function Logo({
   return (
     <Link
       href={href}
-      aria-label="Cool Kick – home"
+      aria-label={compact ? "Cool Kick – home" : undefined}
       className={cn("inline-flex items-center gap-2.5", centered && "flex-col gap-0.5 sm:flex-row sm:gap-2.5", className)}
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-white shadow-[0_4px_12px_rgb(107_163_46/0.3)] md:size-11">

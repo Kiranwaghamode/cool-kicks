@@ -16,11 +16,3 @@ export async function setShopOpen(open: boolean) {
   });
 }
 
-/** Quick search from the top bar: order number or phone → orders page. */
-export async function findOrderQuick(q: string) {
-  return adminAction("orders", async () => {
-    const term = q.trim().toUpperCase();
-    if (!term) return { ok: false, error: "Type an order number or phone" };
-    return { ok: true, data: { href: `/admin/orders?q=${encodeURIComponent(term)}` } };
-  });
-}

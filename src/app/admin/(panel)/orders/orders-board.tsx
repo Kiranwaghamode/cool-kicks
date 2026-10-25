@@ -149,7 +149,7 @@ export function OrdersBoard({
         <button
           type="button"
           onClick={() => go({ tab: "NEW" })}
-          className="mb-4 flex w-full items-center gap-3 rounded-[20px] bg-melon px-5 py-3 text-left font-bold text-white"
+          className="mb-4 flex w-full items-center gap-3 rounded-[20px] bg-melon-deep px-5 py-3 text-left font-bold text-white"
         >
           <BellRing className="size-5" aria-hidden /> {newCount} new order{newCount === 1 ? "" : "s"} to accept
         </button>

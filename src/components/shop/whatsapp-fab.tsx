@@ -18,7 +18,7 @@ export function WhatsAppFab({ number }: { number: string }) {
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
       className={cn(
-        "no-print fixed right-4 bottom-24 z-40 size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_25px_rgb(37_211_102/0.4)] transition hover:scale-105 active:scale-95 lg:right-6 lg:bottom-6",
+        "no-print fixed right-4 bottom-24 z-40 size-14 items-center justify-center rounded-full bg-whatsapp text-white shadow-[0_10px_25px_rgb(17_122_62/0.35)] transition hover:scale-105 active:scale-95 lg:right-6 lg:bottom-6",
         hideOnMobile ? "hidden md:flex" : "flex",
       )}
     >

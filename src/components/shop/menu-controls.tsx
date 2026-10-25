@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Loader2, Search, X } from "lucide-react";
 import { chipClass } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
@@ -29,23 +29,20 @@ export function MenuControls({
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState(params.get("q") ?? "");
   const sort = params.get("sort") ?? "popular";
-  const first = useRef(true);
+  const urlQ = params.get("q") ?? "";
 
-  // Debounced search -> URL
+  // Debounced search -> URL. Only when the typed text differs from the URL, so a
+  // pending update can never undo a category navigation.
   useEffect(() => {
-    if (first.current) {
-      first.current = false;
-      return;
-    }
+    if (q.trim() === urlQ.trim()) return;
     const t = setTimeout(() => {
-      const next = new URLSearchParams(params.toString());
+      const next = new URLSearchParams(window.location.search);
       if (q.trim()) next.set("q", q.trim());
       else next.delete("q");
-      startTransition(() => router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
+      startTransition(() => router.replace(`${window.location.pathname}${next.size ? `?${next}` : ""}`, { scroll: false }));
     }, 300);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q, urlQ, router]);
 
   function setSort(value: string) {
     const next = new URLSearchParams(params.toString());

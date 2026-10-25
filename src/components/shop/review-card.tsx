@@ -33,7 +33,7 @@ export function ReviewCard({
       <Stars rating={review.rating} />
       <blockquote className="mt-4 flex-1 text-ink-soft italic md:text-lg">“{review.comment}”</blockquote>
       <figcaption className="mt-6 flex items-center gap-3">
-        <span className="flex size-11 items-center justify-center rounded-full bg-mango-soft font-bold text-tangerine ring-2 ring-brand/60">
+        <span className="flex size-11 items-center justify-center rounded-full bg-mango-soft font-bold text-warning ring-2 ring-brand/60">
           {initials}
         </span>
         <span>

@@ -59,7 +59,7 @@ export function Tabs<T extends string>({
               <span
                 className={cn(
                   "min-w-6 rounded-full px-1.5 text-xs leading-5",
-                  selected ? "bg-white/25 text-white" : "bg-surface text-ink-soft",
+                  selected ? "bg-black/20 text-white" : "bg-surface text-ink-soft",
                 )}
               >
                 {item.count}
