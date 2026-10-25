@@ -1,7 +1,7 @@
 "use client";
 
 import { create } from "zustand";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 import { CheckCircle2, Info, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -55,9 +55,8 @@ export function Toaster() {
         {toasts.map((t) => {
           const Icon = icons[t.tone];
           return (
-            <motion.div
+            <m.div
               key={t.id}
-              layout
               initial={{ opacity: 0, y: -12, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -77,7 +76,7 @@ export function Toaster() {
               >
                 <X className="size-4" />
               </button>
-            </motion.div>
+            </m.div>
           );
         })}
       </AnimatePresence>

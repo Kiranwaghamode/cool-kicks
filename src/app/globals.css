@@ -193,3 +193,25 @@
     display: none !important;
   }
 }
+
+/* Hero motion – CSS only so the hero paints instantly (transform-only, never hidden). */
+@keyframes hero-rise {
+  from { transform: translateY(18px); }
+  to { transform: translateY(0); }
+}
+@keyframes hero-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hero-rise > * {
+    animation: hero-rise 700ms cubic-bezier(0.21, 0.6, 0.35, 1) both;
+  }
+  .hero-rise > *:nth-child(2) { animation-delay: 60ms; }
+  .hero-rise > *:nth-child(3) { animation-delay: 120ms; }
+  .hero-rise > *:nth-child(4) { animation-delay: 180ms; }
+  .hero-rise > *:nth-child(5) { animation-delay: 240ms; }
+  .hero-float {
+    animation: hero-float 5.2s ease-in-out infinite;
+  }
+}

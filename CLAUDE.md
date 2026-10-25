@@ -71,6 +71,16 @@ plus `CANCELLED` (from any status before DELIVERED) and `REJECTED` (from PLACED 
 - Every page needs loading, empty, error and disabled states in the same style.
 - Placeholder images live in `public/images/`.
 
+## Gotchas (learned while building)
+- `next/image`: `priority` is deprecated in Next 16 – use `loading="eager" fetchPriority="high"` for the LCP image.
+- Motion runs under `<LazyMotion features={domAnimation} strict>` – use `m.div`, never `motion.div` (strict mode throws). No `layout` animations (needs domMax).
+- Don't branch markup on `useReducedMotion()` (hydration mismatch); `MotionConfig reducedMotion="user"` handles it.
+- The `(shop)/template.tsx` fade is opacity-only: transforms on that wrapper break `position: fixed` sticky bars.
+- Text colours are tuned for WCAG AA: `--brand` (#4a7f1c) for white-text fills, `--brand-bright` (Stitch lime) only for decoration; `text-tangerine`, `bg-melon-deep`, `bg-whatsapp` for text/badges.
+- Uploads are written to `/uploads` (not `public/`) and served by `src/app/uploads/[...path]/route.ts` – Next only serves `public/` files that existed at build time.
+- Server actions must call `adminAction(area, …)` / `requireRole(area)`; areas are defined in `src/lib/permissions.ts`.
+- E2E tests (`tests/e2e`) open the shop 24/7 and clear rate limits in global setup, and restore settings in teardown.
+
 ## Commands
 ```
 npm run db:up        # start Postgres (Docker)

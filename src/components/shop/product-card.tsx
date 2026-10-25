@@ -55,7 +55,7 @@ export function ProductCard({
               alt={product.name}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 300px"
-              priority={priority}
+              loading={priority ? "eager" : "lazy"}
               className={cn(
                 "object-cover transition duration-500 group-hover:scale-105",
                 unavailable && "grayscale",

@@ -115,7 +115,7 @@ export default async function HomePage() {
           <Cherry data-parallax="22" className="absolute top-16 right-6 size-9 text-melon/60" />
         </div>
         <div className="container-page grid items-center gap-8 py-8 md:py-14 lg:grid-cols-2 lg:gap-12 lg:py-20">
-          <div className="text-center lg:text-left" data-hero-copy>
+          <div className="hero-rise text-center lg:text-left" data-hero-copy>
             <p className="mb-5 hidden items-center gap-2 rounded-full bg-cream px-3 py-1.5 text-[11px] font-bold tracking-wider text-warning uppercase lg:inline-flex">
               <span className="size-2 rounded-full bg-brand" aria-hidden />
               100% fresh • Made to order • Ice cold
@@ -159,9 +159,10 @@ export default async function HomePage() {
                 src="/images/design/hero-bottles.webp"
                 alt="Three chilled juice bottles – strawberry watermelon, mango orange and grape – with a fruit splash"
                 fill
-                priority
+                loading="eager"
+                fetchPriority="high"
                 sizes="(max-width: 1024px) 90vw, 600px"
-                className="object-cover"
+                className="hero-float object-cover"
                 data-hero-image
               />
             </div>

@@ -2,6 +2,7 @@ import { MapPin, Navigation, Phone, Store } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { WhatsAppIcon } from "@/components/shop/icons";
 import { OpenPill } from "@/components/shop/shop-status-banner";
+import { MapEmbed } from "@/components/shop/map-embed";
 import { summariseHours, type OpeningHours, type ShopStatus } from "@/lib/shop-hours";
 import { telLink, whatsappLink, DEFAULT_WHATSAPP_MESSAGE } from "@/lib/whatsapp";
 
@@ -66,13 +67,7 @@ export function LocationCard({
         </div>
       </div>
       {showMap && shop.mapEmbedUrl && (
-        <iframe
-          title={`Map showing ${shop.shopName}`}
-          src={shop.mapEmbedUrl}
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          className="h-64 w-full border-0 lg:h-full lg:min-h-80"
-        />
+        <MapEmbed title={`Map showing ${shop.shopName}`} src={shop.mapEmbedUrl} className="h-64 w-full border-0 lg:h-full lg:min-h-80" />
       )}
     </div>
   );

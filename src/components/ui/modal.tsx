@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +75,7 @@ export function Modal({ open, onClose, title, hideTitle, children, footer, class
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-[80] flex items-end justify-center md:items-center md:p-6">
-            <motion.div
+            <m.div
               className="absolute inset-0 bg-ink/40 backdrop-blur-[2px]"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -83,7 +83,7 @@ export function Modal({ open, onClose, title, hideTitle, children, footer, class
               onClick={onClose}
               aria-hidden
             />
-            <motion.div
+            <m.div
               ref={panel}
               role="dialog"
               aria-modal="true"
@@ -112,7 +112,7 @@ export function Modal({ open, onClose, title, hideTitle, children, footer, class
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">{children}</div>
               {footer && <div className="border-t border-line px-5 py-4 pb-safe md:pb-4">{footer}</div>}
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>
@@ -145,7 +145,7 @@ export function Drawer({
       <AnimatePresence>
         {open && (
           <div className="fixed inset-0 z-[80]">
-            <motion.div
+            <m.div
               className="absolute inset-0 bg-ink/40"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -153,7 +153,7 @@ export function Drawer({
               onClick={onClose}
               aria-hidden
             />
-            <motion.aside
+            <m.aside
               ref={panel}
               role="dialog"
               aria-modal="true"
@@ -182,7 +182,7 @@ export function Drawer({
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5">{children}</div>
               {footer && <div className="border-t border-line px-5 py-4 pb-safe">{footer}</div>}
-            </motion.aside>
+            </m.aside>
           </div>
         )}
       </AnimatePresence>

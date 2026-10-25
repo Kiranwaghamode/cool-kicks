@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, m } from "motion/react";
 
 type Flight = { id: number; from: { x: number; y: number }; to: { x: number; y: number }; image: string | null };
 
@@ -31,7 +31,7 @@ export function FlyToCart() {
     <div aria-hidden className="pointer-events-none fixed inset-0 z-[95]">
       <AnimatePresence>
         {flights.map((f) => (
-          <motion.div
+          <m.div
             key={f.id}
             className="absolute size-10 overflow-hidden rounded-full border-2 border-white bg-brand shadow-glow"
             style={{ left: 0, top: 0 }}
@@ -49,7 +49,7 @@ export function FlyToCart() {
               // eslint-disable-next-line @next/next/no-img-element -- tiny decorative thumbnail during animation
               <img src={f.image} alt="" className="size-full object-cover" />
             )}
-          </motion.div>
+          </m.div>
         ))}
       </AnimatePresence>
     </div>

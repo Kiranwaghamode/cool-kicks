@@ -38,6 +38,8 @@ const nextConfig: NextConfig = {
   // refreshed with revalidatePath() after admin changes.
   cacheComponents: false,
   poweredByHeader: false,
+  // Docker/VPS builds set BUILD_STANDALONE=1 to get a self-contained .next/standalone server.
+  ...(process.env.BUILD_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   experimental: {
     // Product photo uploads are up to 3 MB (+ multipart overhead).
     serverActions: { bodySizeLimit: "3.5mb" },

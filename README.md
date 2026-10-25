@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cool Kick – Fresh & Chilled Juices
 
-## Getting Started
+Online ordering website and admin dashboard for **Cool Kick**, an ice juice shop.
+Customers browse the menu, customise drinks, and order for pickup or delivery (Cash on Delivery / Pay at Shop).
+Staff manage orders, menu, stock, coupons, delivery zones and reports.
 
-First, run the development server:
+Built with Next.js 16, TypeScript, Tailwind CSS v4, PostgreSQL + Prisma 7, Auth.js, Zod, Zustand, Motion/GSAP/Lenis.
+Design system from the Google Stitch "Mobile-Home" / "Desktop-Home" screens.
+
+## Run it locally
+
+Requirements: Node 20+ (24 recommended), Docker Desktop.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env        # then edit SEED_ADMIN_PASSWORD and AUTH_SECRET
+npm run db:up               # Postgres 16 in Docker (port 5433)
+npm run db:migrate          # create tables
+npm run db:seed             # sample menu, zones, coupons + owner login
+npm run dev                 # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- Shop: http://localhost:3000
+- Admin: http://localhost:3000/admin (log in with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`)
+- UI kit (dev only): http://localhost:3000/dev/ui
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | What it does |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm run build` / `npm start` | Production build / server |
+| `npm run lint` · `npm run typecheck` | ESLint · TypeScript |
+| `npm test` | Vitest unit tests (pricing, hours, status rules) |
+| `npm run test:e2e` | Playwright end-to-end tests (desktop, Pixel, iPhone) + axe accessibility scans |
+| `npm run db:migrate` · `db:seed` · `db:studio` | Prisma |
 
-## Learn More
+## Project docs
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `CLAUDE.md` – stack, folder structure, business rules and conventions
+- `PLAN.md` – the phase-by-phase build plan
+- `DEPLOYMENT.md` – Vercel / VPS deployment, domains, HTTPS, image storage, backups

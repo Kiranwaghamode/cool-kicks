@@ -77,7 +77,8 @@ export default async function ProductPage({ params }: PageProps<"/product/[slug]
                 src={product.image}
                 alt={product.name}
                 fill
-                priority
+                loading="eager"
+                fetchPriority="high"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className={product.isAvailable ? "object-cover" : "object-cover grayscale"}
               />
