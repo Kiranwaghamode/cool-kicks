@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight, Bike, CheckCircle2, Clock, CreditCard, Home, MapPinned, Store } from "lucide-react";
 import { LinkButton, buttonVariants } from "@/components/ui/button";
@@ -122,9 +123,9 @@ export default async function OrderConfirmedPage({ params }: PageProps<"/order/[
         </div>
         <p className="mt-6 text-center text-sm text-ink-soft">
           Want more?{" "}
-          <a href="/menu" className="inline-flex items-center gap-1 font-bold text-brand-deep hover:underline">
+          <Link href="/menu" className="inline-flex items-center gap-1 font-bold text-brand-deep hover:underline">
             Order another round <ArrowRight className="size-4" aria-hidden />
-          </a>
+          </Link>
         </p>
       </div>
     </div>

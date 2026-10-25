@@ -52,10 +52,10 @@ export function CheckoutView() {
   const idemRef = useRef<string | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [pinStatus, setPinStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [pinResult, setPinResult] = useState<{ pin: string; ok: boolean; message: string } | null>(null);
   const [remember, setRemember] = useState(true);
   const [submitting, startSubmit] = useTransition();
-  const placed = useRef(false);
+  const [placed, setPlaced] = useState(false);
 
   const form = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
@@ -77,6 +77,9 @@ export function CheckoutView() {
   const { register, handleSubmit, formState, setValue, reset, setError, getValues, control } = form;
   const errors = formState.errors;
   const pincode = useWatch({ control, name: "pincode" }) ?? "";
+  const cleanPin = pincode.replace(/\D/g, "");
+  /** Live pincode check result – shown only while it matches the typed pincode. */
+  const pinStatus = fulfilment === "DELIVERY" && pinResult && pinResult.pin === cleanPin ? pinResult : null;
 
   // Load the idempotency key once per checkout visit, and prefill saved details.
   useEffect(() => {
@@ -96,14 +99,11 @@ export function CheckoutView() {
     if (fulfilment !== "DELIVERY") return;
     const pin = pincode.replace(/\D/g, "");
     if (pin !== storePincode) setPincode(pin);
-    if (pin.length !== 6) {
-      setPinStatus(null);
-      return;
-    }
+    if (pin.length !== 6) return;
     let cancelled = false;
     checkPincode(pin)
-      .then((r) => !cancelled && setPinStatus(r))
-      .catch(() => !cancelled && setPinStatus(null));
+      .then((r) => !cancelled && setPinResult({ pin, ...r }))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -121,7 +121,7 @@ export function CheckoutView() {
     );
   }
 
-  if (lines.length === 0 && !placed.current) {
+  if (lines.length === 0 && !placed) {
     return (
       <div className="container-page py-10">
         <h1 className="sr-only">Checkout</h1>
@@ -179,7 +179,7 @@ export function CheckoutView() {
       }).catch(() => ({ ok: false as const, error: "Network problem – your details are kept. Please try again.", refreshCart: false }));
 
       if (res.ok) {
-        placed.current = true;
+        setPlaced(true);
         if (remember) {
           saveCustomer({
             customerName: details.customerName,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { Bike, PackageSearch, RefreshCw, RotateCcw, Star, Store } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/field";
@@ -38,7 +38,8 @@ export function TrackView({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const creds = useRef<{ orderNumber: string; phone: string } | null>(null);
+  /** The number + phone of the order currently shown (set only after a successful lookup). */
+  const [creds, setCreds] = useState<{ orderNumber: string; phone: string } | null>(null);
 
   const lookup = useCallback((num: string, ph: string, silent = false) => {
     startTransition(async () => {
@@ -50,7 +51,8 @@ export function TrackView({
         setOrder(res.order);
         setError(null);
         setLastChecked(new Date());
-        creds.current = { orderNumber: num, phone: ph };
+        setCreds({ orderNumber: num, phone: ph });
+        setPhone((p) => p || ph);
       } else if (!silent) {
         setOrder(null);
         setError(res.error);
@@ -62,21 +64,18 @@ export function TrackView({
   useEffect(() => {
     if (!initialOrderNumber) return;
     const saved = getLocalOrders().find((o) => o.orderNumber === initialOrderNumber);
-    if (saved) {
-      setPhone(saved.phone);
-      lookup(saved.orderNumber, saved.phone);
-    }
+    if (saved) lookup(saved.orderNumber, saved.phone);
   }, [initialOrderNumber, lookup]);
 
   // Auto-refresh while the order is active.
   const active = order ? ACTIVE_STATUSES.includes(order.status) : false;
   useEffect(() => {
-    if (!active) return;
+    if (!active || !creds) return;
     const t = setInterval(() => {
-      if (creds.current && document.visibilityState === "visible") lookup(creds.current.orderNumber, creds.current.phone, true);
+      if (document.visibilityState === "visible") lookup(creds.orderNumber, creds.phone, true);
     }, REFRESH_MS);
     return () => clearInterval(t);
-  }, [active, lookup]);
+  }, [active, creds, lookup]);
 
   return (
     <div className="container-page py-8 md:py-12">
@@ -130,12 +129,12 @@ export function TrackView({
         {order && (
           <OrderDetails
             order={order}
-            phone={creds.current?.phone ?? phone}
+            phone={creds?.phone ?? phone}
             whatsappNumber={whatsappNumber}
             prepMins={prepMins}
             lastChecked={lastChecked}
             refreshing={pending}
-            onRefresh={() => creds.current && lookup(creds.current.orderNumber, creds.current.phone, true)}
+            onRefresh={() => creds && lookup(creds.orderNumber, creds.phone, true)}
           />
         )}
       </div>
