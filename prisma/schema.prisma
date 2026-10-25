@@ -1,7 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// Cool Kick – database schema
+// Money is always stored as integer paise (₹80 = 8000).
 
 generator client {
   provider = "prisma-client"
@@ -10,4 +8,384 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum ProductTag {
+  BESTSELLER
+  NEW
+  SEASONAL
+}
+
+enum Size {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum Unit {
+  KG
+  LITRE
+  PIECE
+  GRAM
+  ML
+}
+
+enum StockReason {
+  PURCHASE
+  USAGE
+  WASTAGE
+  ADJUSTMENT
+}
+
+enum Fulfilment {
+  PICKUP
+  DELIVERY
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  PAY_AT_SHOP
+  ONLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum OrderStatus {
+  PLACED
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+  REJECTED
+}
+
+enum Level {
+  NONE
+  LESS
+  REGULAR
+  EXTRA
+}
+
+enum CouponType {
+  PERCENT
+  FLAT
+  BUY_X_GET_Y
+}
+
+enum Role {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+// ──────────────────────────── Catalogue ────────────────────────────
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  slug        String    @unique
+  description String?
+  image       String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+model Product {
+  id               String              @id @default(cuid())
+  name             String
+  slug             String              @unique
+  description      String?
+  image            String?
+  categoryId       String
+  category         Category            @relation(fields: [categoryId], references: [id])
+  ingredients      String[]
+  tags             ProductTag[]
+  isAvailable      Boolean             @default(true)
+  isActive         Boolean             @default(true)
+  sortOrder        Int                 @default(0)
+  allowSugarChoice Boolean             @default(true)
+  allowIceChoice   Boolean             @default(true)
+  variants         ProductVariant[]
+  recipe           ProductIngredient[]
+  orderItems       OrderItem[]
+  reviews          Review[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([categoryId])
+  @@index([isActive, isAvailable])
+}
+
+model ProductVariant {
+  id          String  @id @default(cuid())
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  size        Size
+  volumeMl    Int
+  price       Int // paise
+  isAvailable Boolean @default(true)
+
+  @@unique([productId, size])
+}
+
+// ──────────────────────────── Inventory ────────────────────────────
+
+model Ingredient {
+  id                String              @id @default(cuid())
+  name              String              @unique
+  unit              Unit
+  currentStock      Decimal             @default(0) @db.Decimal(12, 3)
+  lowStockThreshold Decimal             @default(0) @db.Decimal(12, 3)
+  usedIn            ProductIngredient[]
+  movements         StockMovement[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+/// Recipe line: how much of an ingredient one drink uses.
+model ProductIngredient {
+  productId       String
+  product         Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  ingredientId    String
+  ingredient      Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantityPerUnit Decimal    @db.Decimal(12, 3)
+
+  @@id([productId, ingredientId])
+  @@index([ingredientId])
+}
+
+model StockMovement {
+  id           String      @id @default(cuid())
+  ingredientId String
+  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  change       Decimal     @db.Decimal(12, 3) // positive = added, negative = removed
+  reason       StockReason
+  note         String?
+  orderId      String?
+  order        Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  staffId      String?
+  staff        StaffUser?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  createdAt    DateTime    @default(now())
+
+  @@index([ingredientId, createdAt])
+  @@index([orderId])
+}
+
+// ───────────────────────────── Orders ─────────────────────────────
+
+model Order {
+  id               String               @id @default(cuid())
+  orderNumber      String               @unique
+  idempotencyKey   String               @unique
+  customerName     String
+  customerPhone    String
+  customerEmail    String?
+  fulfilment       Fulfilment
+  addressLine1     String?
+  addressLine2     String?
+  landmark         String?
+  area             String?
+  pincode          String?
+  deliveryZoneId   String?
+  deliveryZone     DeliveryZone?        @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
+  subtotal         Int // paise
+  discount         Int                  @default(0) // paise
+  deliveryFee      Int                  @default(0) // paise
+  total            Int // paise
+  couponCode       String?
+  paymentMethod    PaymentMethod
+  paymentStatus    PaymentStatus        @default(PENDING)
+  paymentProvider  String?
+  paymentReference String?
+  paidAt           DateTime?
+  paidById         String?
+  refundedAt       DateTime?
+  refundedById     String?
+  status           OrderStatus          @default(PLACED)
+  notes            String?
+  cancelReason     String?
+  stockDeducted    Boolean              @default(false)
+  items            OrderItem[]
+  history          OrderStatusHistory[]
+  stockMovements   StockMovement[]
+  reviews          Review[]
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@index([customerPhone])
+  @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    String
+  product      Product @relation(fields: [productId], references: [id])
+  productName  String // snapshot
+  size         Size
+  unitPrice    Int // paise, snapshot
+  quantity     Int
+  sugarLevel   Level   @default(REGULAR)
+  iceLevel     Level   @default(REGULAR)
+  instructions String?
+  lineTotal    Int // paise
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+model OrderStatusHistory {
+  id          String       @id @default(cuid())
+  orderId     String
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus  OrderStatus?
+  toStatus    OrderStatus
+  changedById String?
+  changedBy   StaffUser?   @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  note        String?
+  createdAt   DateTime     @default(now())
+
+  @@index([orderId, createdAt])
+}
+
+// ─────────────────────── Offers & delivery ───────────────────────
+
+model Coupon {
+  id             String     @id @default(cuid())
+  code           String     @unique // always uppercase
+  description    String?
+  type           CouponType
+  value          Int        @default(0) // PERCENT: whole percent; FLAT: paise; BUY_X_GET_Y: unused
+  minOrderAmount Int        @default(0) // paise
+  maxDiscount    Int? // paise
+  buyQuantity    Int?
+  getQuantity    Int?
+  validFrom      DateTime
+  validTo        DateTime
+  usageLimit     Int?
+  usedCount      Int        @default(0)
+  isActive       Boolean    @default(true)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
+
+model DeliveryZone {
+  id                String   @id @default(cuid())
+  name              String
+  pincodes          String[]
+  deliveryFee       Int // paise
+  freeDeliveryAbove Int? // paise
+  isActive          Boolean  @default(true)
+  orders            Order[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ───────────────────────────── Shop ─────────────────────────────
+
+/// Single row (id = 1).
+model ShopSettings {
+  id                  Int      @id @default(1)
+  shopName            String
+  tagline             String?
+  phone               String
+  whatsappNumber      String
+  email               String?
+  address             String
+  mapEmbedUrl         String?
+  mapLink             String?
+  /// { mon: { open: "10:00", close: "23:00", closed: false }, ... }
+  openingHours        Json
+  isTemporarilyClosed Boolean  @default(false)
+  closureMessage      String?
+  minOrderAmount      Int      @default(0) // paise
+  pickupEnabled       Boolean  @default(true)
+  deliveryEnabled     Boolean  @default(true)
+  codEnabled          Boolean  @default(true)
+  payAtShopEnabled    Boolean  @default(true)
+  estimatedPrepMins   Int      @default(20)
+  instagramUrl        String?
+  facebookUrl         String?
+  updatedAt           DateTime @updatedAt
+}
+
+model Review {
+  id           String   @id @default(cuid())
+  customerName String
+  rating       Int // 1-5
+  comment      String
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  orderId      String?
+  order        Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([isApproved, createdAt])
+  @@index([productId])
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+// ───────────────────────────── Staff ─────────────────────────────
+
+model StaffUser {
+  id             String               @id @default(cuid())
+  name           String
+  email          String               @unique
+  passwordHash   String
+  role           Role                 @default(STAFF)
+  isActive       Boolean              @default(true)
+  lastLoginAt    DateTime?
+  statusChanges  OrderStatusHistory[]
+  stockMovements StockMovement[]
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  title     String
+  amount    Int // paise
+  category  String
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@index([date])
+}
+
+// ──────────────────────────── Security ────────────────────────────
+
+/// Fixed-window rate limiting (orders, login, contact form).
+model RateLimit {
+  key         String   @id
+  count       Int      @default(0)
+  windowStart DateTime
 }
