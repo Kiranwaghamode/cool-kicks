@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const isDev = process.env.NODE_ENV !== "production";
+/** HTTPS-only headers (HSTS, upgrade-insecure-requests) only when the site is really served over https –
+ *  otherwise a local `npm start` opened over http://<LAN-IP> can't load its own files. */
+const isHttps = (process.env.NEXT_PUBLIC_SITE_URL ?? "").startsWith("https://");
 
 /**
  * Content Security Policy. Next.js injects small inline scripts for hydration, so
@@ -19,7 +22,7 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  ...(isHttps ? ["upgrade-insecure-requests"] : []),
 ].join("; ");
 
 const securityHeaders = [
@@ -30,7 +33,7 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=(), usb=()" },
   { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   // HSTS only matters over HTTPS; browsers ignore it on plain http://localhost.
-  ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
+  ...(!isHttps ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
 ];
 
 const nextConfig: NextConfig = {
