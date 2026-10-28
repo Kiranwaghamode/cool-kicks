@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
@@ -9,7 +9,8 @@ import sharp from "sharp";
  *
  * STORAGE_DRIVER=local (default): files are written to <project>/uploads and served by
  * src/app/uploads/[...path]/route.ts at /uploads/... (works in dev and on a VPS).
- * On serverless hosting (Vercel) switch to "cloudinary" or "s3" – see DEPLOYMENT.md.
+ * STORAGE_DRIVER=cloudinary: uploaded to Cloudinary with its REST API (needed on Vercel,
+ * whose filesystem is temporary). Needs CLOUDINARY_CLOUD_NAME / _API_KEY / _API_SECRET.
  */
 
 export const MAX_UPLOAD_BYTES = 3 * 1024 * 1024;
@@ -48,20 +49,75 @@ export async function saveImage(file: File, folder: "products" | "categories" | 
       return `/uploads/${folder}/${name}`;
     }
     case "cloudinary":
+      return uploadToCloudinary(output, folder);
     case "s3":
-      // Add the provider SDK and upload `output` here; return its public URL.
-      // Remember to add the provider's host to images.remotePatterns in next.config.ts.
+      // Add the S3 SDK and upload `output` here; return its public URL. See DEPLOYMENT.md.
       throw new UploadError(`Storage driver "${driver}" is not configured yet. See DEPLOYMENT.md.`);
     default:
       throw new UploadError(`Unknown STORAGE_DRIVER "${driver}".`);
   }
 }
 
-/** Best-effort delete of a previously uploaded local image. */
+/** Best-effort delete of a previously uploaded image (local file or Cloudinary asset). */
 export async function deleteImage(url: string | null | undefined) {
-  if (!url || !url.startsWith("/uploads/")) return;
+  if (!url) return;
+  if (url.startsWith("https://res.cloudinary.com/")) {
+    await deleteFromCloudinary(url).catch(() => {});
+    return;
+  }
+  if (!url.startsWith("/uploads/")) return;
   const rel = url.replace(/^\/uploads\//, "");
   const full = path.join(UPLOAD_DIR, rel);
   if (!full.startsWith(UPLOAD_DIR)) return;
   await unlink(full).catch(() => {});
+}
+
+/* ---------------- Cloudinary (signed REST uploads, no SDK) ---------------- */
+
+function cloudinaryConfig() {
+  const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+  const key = process.env.CLOUDINARY_API_KEY;
+  const secret = process.env.CLOUDINARY_API_SECRET;
+  if (!cloud || !key || !secret) throw new UploadError("Image storage is not configured (Cloudinary keys missing).");
+  return { cloud, key, secret };
+}
+
+/** Cloudinary signature: sha1 of the sorted params joined with "&", followed by the API secret. */
+function sign(params: Record<string, string>, secret: string) {
+  const toSign = Object.keys(params)
+    .sort()
+    .map((k) => `${k}=${params[k]}`)
+    .join("&");
+  return createHash("sha1").update(toSign + secret).digest("hex");
+}
+
+async function uploadToCloudinary(output: Buffer, folder: string): Promise<string> {
+  const { cloud, key, secret } = cloudinaryConfig();
+  const params = { folder: `coolkick/${folder}`, timestamp: String(Math.floor(Date.now() / 1000)) };
+  const form = new FormData();
+  form.append("file", new Blob([new Uint8Array(output)], { type: "image/webp" }), "image.webp");
+  for (const [k, v] of Object.entries(params)) form.append(k, v);
+  form.append("api_key", key);
+  form.append("signature", sign(params, secret));
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: "POST", body: form });
+  const data = (await res.json().catch(() => null)) as { secure_url?: string; error?: { message?: string } } | null;
+  if (!res.ok || !data?.secure_url) {
+    console.error("[storage] Cloudinary upload failed:", res.status, data?.error?.message);
+    throw new UploadError("Couldn't upload the image. Please try again.");
+  }
+  return data.secure_url;
+}
+
+async function deleteFromCloudinary(url: string) {
+  const { cloud, key, secret } = cloudinaryConfig();
+  // https://res.cloudinary.com/<cloud>/image/upload/v123/coolkick/products/abc.webp -> coolkick/products/abc
+  const match = url.match(/\/image\/upload\/(?:v\d+\/)?(.+)\.[a-z0-9]+$/i);
+  if (!match) return;
+  const params = { public_id: match[1], timestamp: String(Math.floor(Date.now() / 1000)) };
+  const form = new FormData();
+  for (const [k, v] of Object.entries(params)) form.append(k, v);
+  form.append("api_key", key);
+  form.append("signature", sign(params, secret));
+  await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/destroy`, { method: "POST", body: form });
 }

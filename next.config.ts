@@ -14,7 +14,7 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://*.googleusercontent.com https://*.google.com https://*.gstatic.com",
+  "img-src 'self' data: blob: https://res.cloudinary.com https://*.googleusercontent.com https://*.google.com https://*.gstatic.com",
   "font-src 'self' data:",
   `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
   "frame-src https://www.google.com https://maps.google.com",
@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    // Product photos uploaded with STORAGE_DRIVER=cloudinary.
+    remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },
   async headers() {
     return [

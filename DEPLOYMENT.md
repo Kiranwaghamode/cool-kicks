@@ -20,7 +20,8 @@ Both use the same environment variables and database steps.
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | `919876543210` | Digits only, with country code. |
 | `NEXT_PUBLIC_SHOP_PHONE` | `+919876543210` | Shown on the site (also editable in Admin → Settings). |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | `owner@coolkick.in` / strong password | Only used once, when seeding the first owner account. |
-| `STORAGE_DRIVER` | `local` / `cloudinary` / `s3` | See section 5. |
+| `STORAGE_DRIVER` | `local` / `cloudinary` / `s3` | See section 5. Use `cloudinary` on Vercel. |
+| `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | from cloudinary.com dashboard | Only with `STORAGE_DRIVER=cloudinary`. |
 
 > `NEXT_PUBLIC_*` values are baked into the browser bundle at build time – rebuild after changing them.
 
@@ -95,11 +96,10 @@ Updating: `git pull && docker compose -f docker-compose.prod.yml --env-file .env
 
 Uploads go through one helper: `src/server/storage.ts` → `saveImage()`. It already validates type/size and converts to WebP with sharp; only the final "write" step changes per driver.
 
-**Cloudinary**
-1. `npm install cloudinary` and add `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
-2. In the `case "cloudinary"` branch, upload the `output` buffer (`cloudinary.uploader.upload_stream({ folder: \`coolkick/${folder}\` })`) and return `result.secure_url`.
-3. Add `{ protocol: "https", hostname: "res.cloudinary.com" }` to `images.remotePatterns` in `next.config.ts`, and `https://res.cloudinary.com` to `img-src` in the CSP there.
-4. Set `STORAGE_DRIVER=cloudinary`.
+**Cloudinary** (already built in – no SDK needed)
+1. Create a free account at cloudinary.com → Dashboard → copy **Cloud name**, **API Key**, **API Secret**.
+2. Set `STORAGE_DRIVER=cloudinary`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`.
+3. That's it: `next.config.ts` already allows `res.cloudinary.com` images and the CSP. Photos land in the `coolkick/` folder; deleting a product photo also removes it from Cloudinary.
 
 **S3 / Cloudflare R2**
 1. `npm install @aws-sdk/client-s3`, add `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_PUBLIC_URL`.
