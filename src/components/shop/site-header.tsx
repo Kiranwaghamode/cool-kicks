@@ -17,6 +17,7 @@ export const NAV_LINKS = [
   { href: "/offers", label: "Offers" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
+  { href: "/business", label: "Wholesale" },
 ];
 
 function isActive(pathname: string, href: string) {

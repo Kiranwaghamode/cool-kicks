@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { STATUS_LABELS, type OrderStatus } from "@/lib/order-status";
-import { PAYMENT_STATUS_LABELS, type PaymentStatus } from "@/lib/types";
+import { BUSINESS_STATUS_LABELS, PAYMENT_STATUS_LABELS, QUOTATION_STATUS_LABELS, type BusinessStatus, type PaymentStatus, type QuotationStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
@@ -49,6 +49,7 @@ const STATUS_TONES: Record<OrderStatus, BadgeTone> = {
   PLACED: "melon",
   CONFIRMED: "ice",
   PREPARING: "mango",
+  PACKED: "ice",
   READY_FOR_PICKUP: "brand",
   OUT_FOR_DELIVERY: "brand",
   DELIVERED: "success",
@@ -61,8 +62,25 @@ export function StatusBadge({ status }: { status: OrderStatus }) {
 }
 
 export function PaymentBadge({ status }: { status: PaymentStatus }) {
-  const tone: BadgeTone = status === "PAID" ? "success" : status === "REFUNDED" ? "ice" : status === "FAILED" ? "danger" : "warning";
+  const tone: BadgeTone = status === "PAID" ? "success" : status === "PARTIALLY_PAID" ? "ice" : status === "REFUNDED" ? "ice" : status === "FAILED" ? "danger" : "warning";
   return <Badge tone={tone}>{status === "PENDING" ? "Unpaid" : PAYMENT_STATUS_LABELS[status]}</Badge>;
+}
+
+const BUSINESS_TONES: Record<BusinessStatus, BadgeTone> = { PENDING: "warning", APPROVED: "success", REJECTED: "danger", SUSPENDED: "neutral" };
+
+export function BusinessStatusBadge({ status }: { status: BusinessStatus }) {
+  return <Badge tone={BUSINESS_TONES[status]}>{BUSINESS_STATUS_LABELS[status]}</Badge>;
+}
+
+const QUOTE_TONES: Record<QuotationStatus, BadgeTone> = { REQUESTED: "melon", QUOTED: "ice", ACCEPTED: "success", DECLINED: "neutral", CANCELLED: "neutral" };
+
+export function QuotationBadge({ status }: { status: QuotationStatus }) {
+  return <Badge tone={QUOTE_TONES[status]}>{status === "REQUESTED" ? "New request" : QUOTATION_STATUS_LABELS[status]}</Badge>;
+}
+
+/** Wholesale channel marker for order lists. */
+export function WholesaleBadge() {
+  return <Badge tone="dark">B2B</Badge>;
 }
 
 /** Simple responsive table wrapper. */

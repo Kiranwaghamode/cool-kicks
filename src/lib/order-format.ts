@@ -12,6 +12,11 @@ export function formatDateTime(iso: string | Date) {
   }).format(new Date(iso));
 }
 
+/** "3 Nov 2026" in the shop timezone. */
+export function formatDate(iso: string | Date) {
+  return new Intl.DateTimeFormat("en-IN", { timeZone: SHOP_TIMEZONE, day: "numeric", month: "short", year: "numeric" }).format(new Date(iso));
+}
+
 export function formatTime(iso: string | Date) {
   return new Intl.DateTimeFormat("en-IN", { timeZone: SHOP_TIMEZONE, hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }

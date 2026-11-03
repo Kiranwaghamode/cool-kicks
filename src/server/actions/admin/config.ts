@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { adminAction } from "@/server/auth-guard";
 import { parseISTDate, addDays } from "@/lib/dates";
 import { WEEKDAYS } from "@/lib/shop-hours";
+import { gstinProblem, isValidStateCode, normalizeGstin } from "@/lib/gst";
 
 function fieldErrors(error: z.ZodError) {
   const out: Record<string, string> = {};
@@ -181,6 +182,25 @@ const settingsSchema = z.object({
   deliveryEnabled: z.boolean(),
   codEnabled: z.boolean(),
   payAtShopEnabled: z.boolean(),
+  // Wholesale / GST
+  wholesaleEnabled: z.boolean(),
+  wholesaleMinOrder: paise,
+  legalName: z.string().trim().max(120).optional().default(""),
+  gstin: z
+    .string()
+    .trim()
+    .transform(normalizeGstin)
+    .superRefine((g, ctx) => {
+      const p = g ? gstinProblem(g) : null;
+      if (p) ctx.addIssue({ code: "custom", message: p });
+    })
+    .optional()
+    .default(""),
+  stateCode: z.string().refine(isValidStateCode, "Choose the shop's state"),
+  defaultCreditDays: z.number().int().min(0).max(180),
+  quotationValidDays: z.number().int().min(1).max(90),
+  bankDetails: z.string().trim().max(500).optional().default(""),
+  invoiceTerms: z.string().trim().max(800).optional().default(""),
 });
 
 export type SettingsInput = z.input<typeof settingsSchema>;
@@ -191,6 +211,8 @@ export async function saveSettings(input: SettingsInput) {
     if (!parsed.success) return { ok: false, error: "Please fix the highlighted fields.", fieldErrors: fieldErrors(parsed.error) };
     const s = parsed.data;
     if (!s.pickupEnabled && !s.deliveryEnabled) return { ok: false, error: "Enable pickup, delivery or both." };
+    if (s.gstin && s.gstin.slice(0, 2) !== s.stateCode)
+      return { ok: false, error: "The shop state must match the GSTIN.", fieldErrors: { stateCode: "Must match the GSTIN" } };
     await db.shopSettings.update({
       where: { id: 1 },
       data: {
@@ -202,6 +224,10 @@ export async function saveSettings(input: SettingsInput) {
         instagramUrl: s.instagramUrl || null,
         facebookUrl: s.facebookUrl || null,
         closureMessage: s.closureMessage || null,
+        legalName: s.legalName || null,
+        gstin: s.gstin || null,
+        bankDetails: s.bankDetails || null,
+        invoiceTerms: s.invoiceTerms || null,
       },
     });
     revalidatePath("/", "layout");

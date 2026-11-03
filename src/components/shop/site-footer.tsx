@@ -21,6 +21,7 @@ const COLUMNS = [
       { href: "/about", label: "About us" },
       { href: "/contact", label: "Contact" },
       { href: "/faq", label: "FAQ" },
+      { href: "/business", label: "Wholesale / B2B" },
     ],
   },
   {

@@ -32,6 +32,15 @@ export default async function SettingsPage() {
           deliveryEnabled: s.deliveryEnabled,
           codEnabled: s.codEnabled,
           payAtShopEnabled: s.payAtShopEnabled,
+          wholesaleEnabled: s.wholesaleEnabled,
+          wholesaleMinOrder: s.wholesaleMinOrder,
+          legalName: s.legalName ?? "",
+          gstin: s.gstin ?? "",
+          stateCode: s.stateCode,
+          defaultCreditDays: s.defaultCreditDays,
+          quotationValidDays: s.quotationValidDays,
+          bankDetails: s.bankDetails ?? "",
+          invoiceTerms: s.invoiceTerms ?? "",
         }}
       />
     </>

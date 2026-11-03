@@ -12,10 +12,12 @@ export const metadata: Metadata = {
 
 export default async function AdminPanelLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireRole("dashboard");
-  const [settings, pendingOrders, unreadMessages] = await Promise.all([
+  const [settings, pendingOrders, unreadMessages, pendingBusinesses, quoteRequests] = await Promise.all([
     db.shopSettings.findUnique({ where: { id: 1 }, select: { isTemporarilyClosed: true } }),
     db.order.count({ where: { status: "PLACED" } }),
     can(staff.role, "messages") ? db.contactMessage.count({ where: { isRead: false } }) : Promise.resolve(0),
+    can(staff.role, "businesses") ? db.business.count({ where: { status: "PENDING" } }) : Promise.resolve(0),
+    can(staff.role, "quotations") ? db.quotation.count({ where: { status: "REQUESTED" } }) : Promise.resolve(0),
   ]);
   return (
     <AdminShell
@@ -23,6 +25,8 @@ export default async function AdminPanelLayout({ children }: { children: React.R
       shopOpen={!settings?.isTemporarilyClosed}
       pendingOrders={pendingOrders}
       unreadMessages={unreadMessages}
+      pendingBusinesses={pendingBusinesses}
+      quoteRequests={quoteRequests}
     >
       {children}
     </AdminShell>

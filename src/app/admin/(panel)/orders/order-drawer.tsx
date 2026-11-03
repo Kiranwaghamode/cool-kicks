@@ -32,6 +32,7 @@ function customerMessage(o: AdminOrder) {
     PLACED: `Hi ${name}! We've received your Cool Kick order ${o.orderNumber}. We'll confirm it shortly.`,
     CONFIRMED: `Hi ${name}! Your Cool Kick order ${o.orderNumber} is confirmed 🍹`,
     PREPARING: `Hi ${name}! We're preparing your order ${o.orderNumber} right now.`,
+    PACKED: `Hi ${name}! Your order ${o.orderNumber} is packed and will be dispatched soon.`,
     READY_FOR_PICKUP: `Hi ${name}! Your order ${o.orderNumber} is ready for pickup at the counter. Total ${formatPaise(o.total)}.`,
     OUT_FOR_DELIVERY: `Hi ${name}! Your order ${o.orderNumber} is out for delivery. Please keep ${formatPaise(o.total)} ready (cash/UPI).`,
     DELIVERED: `Hi ${name}! Hope you enjoyed your Cool Kick order ${o.orderNumber}. Thank you! 💚`,

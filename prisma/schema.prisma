@@ -32,6 +32,91 @@ enum Unit {
   ML
 }
 
+enum OrderChannel {
+  RETAIL
+  WHOLESALE
+}
+
+enum BusinessType {
+  RETAILER
+  DISTRIBUTOR
+}
+
+enum BusinessStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum DocumentType {
+  GST_CERTIFICATE
+  PAN
+  TRADE_LICENSE
+  FSSAI
+  OTHER
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum QuotationStatus {
+  REQUESTED
+  QUOTED
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+enum PaymentMode {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+  CARD
+  OTHER
+}
+
+enum PaymentKind {
+  PAYMENT
+  REFUND
+}
+
+enum InvoiceStatus {
+  ISSUED
+  CANCELLED
+}
+
+enum DeliverySlot {
+  MORNING
+  AFTERNOON
+  EVENING
+}
+
+enum DeliveryStatus {
+  SCHEDULED
+  DISPATCHED
+  DELIVERED
+  FAILED
+}
+
+enum BatchReason {
+  PRODUCTION
+  SALE
+  RETURN
+  WASTAGE
+  ADJUSTMENT
+}
+
+enum ActorType {
+  STAFF
+  BUSINESS
+  SYSTEM
+}
+
 enum StockReason {
   PURCHASE
   USAGE
@@ -48,10 +133,15 @@ enum PaymentMethod {
   CASH_ON_DELIVERY
   PAY_AT_SHOP
   ONLINE
+  /// Wholesale: advance payment by bank transfer / UPI before dispatch
+  BANK_TRANSFER
+  /// Wholesale: on account, due after the business's credit days
+  CREDIT
 }
 
 enum PaymentStatus {
   PENDING
+  PARTIALLY_PAID
   PAID
   FAILED
   REFUNDED
@@ -61,6 +151,8 @@ enum OrderStatus {
   PLACED
   CONFIRMED
   PREPARING
+  /// Wholesale only: packed and waiting for dispatch / pickup
+  PACKED
   READY_FOR_PICKUP
   OUT_FOR_DELIVERY
   DELIVERED
@@ -119,10 +211,14 @@ model Product {
   sortOrder        Int                 @default(0)
   allowSugarChoice Boolean             @default(true)
   allowIceChoice   Boolean             @default(true)
+  /// GST rate in basis points (500 = 5%). Used on wholesale invoices.
+  gstRateBps       Int                 @default(500)
+  hsnCode          String?
   variants         ProductVariant[]
   recipe           ProductIngredient[]
   orderItems       OrderItem[]
   reviews          Review[]
+  quotationItems   QuotationItem[]
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
@@ -136,10 +232,39 @@ model ProductVariant {
   product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   size        Size
   volumeMl    Int
-  price       Int // paise
+  price       Int // paise (retail, GST inclusive)
   isAvailable Boolean @default(true)
 
+  // ── Wholesale ──
+  wholesaleEnabled Boolean @default(false)
+  /// Base wholesale price per unit, paise, excluding GST
+  wholesalePrice   Int?
+  /// Minimum order quantity in units
+  moq              Int     @default(1)
+  /// Units per pack; wholesale quantities must be a multiple of this
+  packSize         Int     @default(1)
+  /// e.g. "Case of 24 bottles"
+  packaging        String?
+
+  tiers          VolumePriceTier[]
+  priceListItems PriceListItem[]
+  customerPrices CustomerPrice[]
+  batches        Batch[]
+  orderItems     OrderItem[]
+  quotationItems QuotationItem[]
+
   @@unique([productId, size])
+}
+
+/// Quantity discount: from `minQuantity` units the unit price is reduced by `discountBps`.
+model VolumePriceTier {
+  id          String         @id @default(cuid())
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  minQuantity Int
+  discountBps Int
+
+  @@unique([variantId, minQuantity])
 }
 
 // ──────────────────────────── Inventory ────────────────────────────
@@ -150,6 +275,8 @@ model Ingredient {
   unit              Unit
   currentStock      Decimal             @default(0) @db.Decimal(12, 3)
   lowStockThreshold Decimal             @default(0) @db.Decimal(12, 3)
+  /// Optional purchase cost per unit (paise), used for estimated margins
+  costPerUnit       Int?
   usedIn            ProductIngredient[]
   movements         StockMovement[]
   createdAt         DateTime            @default(now())
@@ -188,62 +315,91 @@ model StockMovement {
 // ───────────────────────────── Orders ─────────────────────────────
 
 model Order {
-  id               String               @id @default(cuid())
-  orderNumber      String               @unique
-  idempotencyKey   String               @unique
-  customerName     String
-  customerPhone    String
-  customerEmail    String?
-  fulfilment       Fulfilment
-  addressLine1     String?
-  addressLine2     String?
-  landmark         String?
-  area             String?
-  pincode          String?
-  deliveryZoneId   String?
-  deliveryZone     DeliveryZone?        @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
-  subtotal         Int // paise
-  discount         Int                  @default(0) // paise
-  deliveryFee      Int                  @default(0) // paise
-  total            Int // paise
-  couponCode       String?
-  paymentMethod    PaymentMethod
-  paymentStatus    PaymentStatus        @default(PENDING)
-  paymentProvider  String?
-  paymentReference String?
-  paidAt           DateTime?
-  paidById         String?
-  refundedAt       DateTime?
-  refundedById     String?
-  status           OrderStatus          @default(PLACED)
-  notes            String?
-  cancelReason     String?
-  stockDeducted    Boolean              @default(false)
-  items            OrderItem[]
-  history          OrderStatusHistory[]
-  stockMovements   StockMovement[]
-  reviews          Review[]
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                String               @id @default(cuid())
+  orderNumber       String               @unique
+  idempotencyKey    String               @unique
+  channel           OrderChannel         @default(RETAIL)
+  businessId        String?
+  business          Business?            @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  businessAddressId String?
+  city              String?
+  state             String?
+  /// Wholesale: buyer's purchase order reference
+  poNumber          String?
+  poDate            DateTime?
+  /// Wholesale: GST place of supply (2-digit state code)
+  placeOfSupply     String?
+  taxTotal          Int                  @default(0) // paise (wholesale GST)
+  cgst              Int                  @default(0)
+  sgst              Int                  @default(0)
+  igst              Int                  @default(0)
+  /// Payments minus refunds recorded against this order (paise)
+  amountPaid        Int                  @default(0)
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  fulfilment        Fulfilment
+  addressLine1      String?
+  addressLine2      String?
+  landmark          String?
+  area              String?
+  pincode           String?
+  deliveryZoneId    String?
+  deliveryZone      DeliveryZone?        @relation(fields: [deliveryZoneId], references: [id], onDelete: SetNull)
+  subtotal          Int // paise
+  discount          Int                  @default(0) // paise
+  deliveryFee       Int                  @default(0) // paise
+  total             Int // paise
+  couponCode        String?
+  paymentMethod     PaymentMethod
+  paymentStatus     PaymentStatus        @default(PENDING)
+  paymentProvider   String?
+  paymentReference  String?
+  paidAt            DateTime?
+  paidById          String?
+  refundedAt        DateTime?
+  refundedById      String?
+  status            OrderStatus          @default(PLACED)
+  notes             String?
+  cancelReason      String?
+  stockDeducted     Boolean              @default(false)
+  quotation         Quotation?
+  invoice           Invoice?
+  delivery          Delivery?
+  payments          Payment[]
+  batchMovements    BatchMovement[]
+  items             OrderItem[]
+  history           OrderStatusHistory[]
+  stockMovements    StockMovement[]
+  reviews           Review[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   @@index([customerPhone])
+  @@index([businessId, createdAt])
+  @@index([channel, createdAt])
   @@index([status])
   @@index([createdAt])
   @@index([status, createdAt])
 }
 
 model OrderItem {
-  id           String  @id @default(cuid())
+  id           String          @id @default(cuid())
   orderId      String
-  order        Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
   productId    String
-  product      Product @relation(fields: [productId], references: [id])
+  product      Product         @relation(fields: [productId], references: [id])
   productName  String // snapshot
   size         Size
+  variantId    String?
+  variant      ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  hsnCode      String? // wholesale snapshot
+  gstRateBps   Int             @default(0) // wholesale snapshot
+  taxAmount    Int             @default(0) // paise, wholesale GST on this line
   unitPrice    Int // paise, snapshot
   quantity     Int
-  sugarLevel   Level   @default(REGULAR)
-  iceLevel     Level   @default(REGULAR)
+  sugarLevel   Level           @default(REGULAR)
+  iceLevel     Level           @default(REGULAR)
   instructions String?
   lineTotal    Int // paise
 
@@ -323,6 +479,17 @@ model ShopSettings {
   estimatedPrepMins   Int      @default(20)
   instagramUrl        String?
   facebookUrl         String?
+  // ── Wholesale / GST ──
+  wholesaleEnabled    Boolean  @default(true)
+  wholesaleMinOrder   Int      @default(0) // paise, taxable value
+  legalName           String?
+  gstin               String?
+  /// 2-digit GST state code of the shop (27 = Maharashtra)
+  stateCode           String   @default("27")
+  defaultCreditDays   Int      @default(15)
+  quotationValidDays  Int      @default(7)
+  bankDetails         String?
+  invoiceTerms        String?
   updatedAt           DateTime @updatedAt
 }
 
@@ -366,6 +533,7 @@ model StaffUser {
   lastLoginAt    DateTime?
   statusChanges  OrderStatusHistory[]
   stockMovements StockMovement[]
+  auditLogs      AuditLog[]
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt
 }
@@ -388,4 +556,341 @@ model RateLimit {
   key         String   @id
   count       Int      @default(0)
   windowStart DateTime
+}
+
+// ─────────────────────────── Wholesale (B2B) ───────────────────────────
+
+model CustomerGroup {
+  id          String     @id @default(cuid())
+  name        String     @unique
+  description String?
+  priceListId String?
+  priceList   PriceList? @relation(fields: [priceListId], references: [id], onDelete: SetNull)
+  isActive    Boolean    @default(true)
+  businesses  Business[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+/// Wholesale pricing rule: a % off base wholesale prices, plus per-variant price overrides.
+model PriceList {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  description String?
+  /// Discount off the base wholesale price, basis points (250 = 2.5% off)
+  discountBps Int             @default(0)
+  isActive    Boolean         @default(true)
+  items       PriceListItem[]
+  groups      CustomerGroup[]
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+}
+
+model PriceListItem {
+  id          String         @id @default(cuid())
+  priceListId String
+  priceList   PriceList      @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  price       Int // paise, excl. GST
+
+  @@unique([priceListId, variantId])
+}
+
+model Business {
+  id           String             @id @default(cuid())
+  legalName    String
+  tradeName    String?
+  type         BusinessType
+  status       BusinessStatus     @default(PENDING)
+  contactName  String
+  /// Login id – 10-digit Indian mobile
+  phone        String             @unique
+  email        String?
+  passwordHash String
+  gstin        String?            @unique
+  pan          String?
+  /// 2-digit GST state code (from the GSTIN, or chosen at registration)
+  stateCode    String
+  groupId      String?
+  group        CustomerGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  /// Reason shown to the business when rejected / suspended
+  statusNote   String?
+  approvedAt   DateTime?
+  approvedById String?
+  lastLoginAt  DateTime?
+  addresses    BusinessAddress[]
+  documents    BusinessDocument[]
+  sessions     BusinessSession[]
+  prices       CustomerPrice[]
+  credit       CreditAccount?
+  orders       Order[]
+  quotations   Quotation[]
+  invoices     Invoice[]
+  payments     Payment[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([status, createdAt])
+}
+
+model BusinessAddress {
+  id          String   @id @default(cuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  label       String
+  contactName String
+  phone       String
+  line1       String
+  line2       String?
+  landmark    String?
+  area        String
+  city        String
+  state       String
+  pincode     String
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+}
+
+/// Verification documents, stored privately in the database (never served from /uploads).
+model BusinessDocument {
+  id           String         @id @default(cuid())
+  businessId   String
+  business     Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  type         DocumentType
+  fileName     String
+  mimeType     String
+  size         Int
+  data         Bytes
+  status       DocumentStatus @default(PENDING)
+  note         String?
+  reviewedById String?
+  reviewedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@index([businessId])
+}
+
+model BusinessSession {
+  id         String   @id @default(cuid())
+  /// sha256 of the cookie token (the token itself is never stored)
+  tokenHash  String   @unique
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([businessId])
+}
+
+/// Negotiated price for one business. Beats price lists and volume tiers.
+model CustomerPrice {
+  id         String         @id @default(cuid())
+  businessId String
+  business   Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  variantId  String
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  price      Int // paise, excl. GST
+  validTo    DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([businessId, variantId])
+}
+
+/// Credit terms. The outstanding balance is calculated from orders and payments, never stored.
+model CreditAccount {
+  businessId  String   @id
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  isActive    Boolean  @default(false)
+  creditLimit Int      @default(0) // paise
+  creditDays  Int      @default(15)
+  note        String?
+  updatedAt   DateTime @updatedAt
+}
+
+model Quotation {
+  id            String          @id @default(cuid())
+  number        String          @unique
+  businessId    String
+  business      Business        @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  status        QuotationStatus @default(REQUESTED)
+  requestNote   String?
+  staffNote     String?
+  fulfilment    Fulfilment      @default(DELIVERY)
+  addressId     String?
+  pincode       String?
+  validUntil    DateTime?
+  /// 2-digit state code used for CGST/SGST vs IGST
+  placeOfSupply String
+  subtotal      Int             @default(0)
+  discount      Int             @default(0)
+  deliveryFee   Int             @default(0)
+  cgst          Int             @default(0)
+  sgst          Int             @default(0)
+  igst          Int             @default(0)
+  taxTotal      Int             @default(0)
+  total         Int             @default(0)
+  preparedById  String?
+  quotedAt      DateTime?
+  respondedAt   DateTime?
+  orderId       String?         @unique
+  order         Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  items         QuotationItem[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([businessId, createdAt])
+  @@index([status, createdAt])
+}
+
+model QuotationItem {
+  id          String         @id @default(cuid())
+  quotationId String
+  quotation   Quotation      @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product        @relation(fields: [productId], references: [id])
+  variantId   String
+  variant     ProductVariant @relation(fields: [variantId], references: [id])
+  productName String
+  size        Size
+  quantity    Int
+  /// Quoted unit price, paise excl. GST (starts at the business's current price)
+  unitPrice   Int
+  hsnCode     String?
+  gstRateBps  Int
+  lineTotal   Int
+  taxAmount   Int            @default(0)
+
+  @@index([quotationId])
+}
+
+model Payment {
+  id           String      @id @default(cuid())
+  orderId      String
+  order        Order       @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  businessId   String?
+  business     Business?   @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  kind         PaymentKind @default(PAYMENT)
+  amount       Int // paise, always positive
+  mode         PaymentMode
+  reference    String?
+  note         String?
+  receivedAt   DateTime
+  recordedById String?
+  createdAt    DateTime    @default(now())
+
+  @@index([orderId])
+  @@index([businessId, receivedAt])
+  @@index([receivedAt])
+}
+
+model Invoice {
+  id           String        @id @default(cuid())
+  /// e.g. CK/26-27/00012 – sequential per financial year
+  number       String        @unique
+  orderId      String        @unique
+  order        Order         @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  businessId   String
+  business     Business      @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  status       InvoiceStatus @default(ISSUED)
+  issuedAt     DateTime      @default(now())
+  dueDate      DateTime
+  /// Immutable snapshot of seller, buyer, lines and totals at the time of issue
+  snapshot     Json
+  total        Int
+  cancelledAt  DateTime?
+  cancelReason String?
+  createdById  String?
+
+  @@index([businessId, issuedAt])
+  @@index([issuedAt])
+}
+
+model InvoiceCounter {
+  /// Financial year, e.g. "26-27"
+  fy   String @id
+  last Int    @default(0)
+}
+
+model Delivery {
+  id                    String         @id @default(cuid())
+  orderId               String         @unique
+  order                 Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  scheduledDate         DateTime
+  slot                  DeliverySlot
+  status                DeliveryStatus @default(SCHEDULED)
+  driverName            String?
+  driverPhone           String?
+  vehicle               String?
+  dispatchedAt          DateTime?
+  deliveredAt           DateTime?
+  receivedBy            String?
+  note                  String?
+  /// Set when the business confirms receipt in its portal
+  confirmedByBusinessAt DateTime?
+  updatedAt             DateTime       @updatedAt
+
+  @@index([scheduledDate, status])
+}
+
+/// Finished-product batch (e.g. bottled juice) with expiry.
+model Batch {
+  id                String          @id @default(cuid())
+  batchNumber       String          @unique
+  variantId         String
+  variant           ProductVariant  @relation(fields: [variantId], references: [id], onDelete: Restrict)
+  manufacturedAt    DateTime
+  expiresAt         DateTime
+  quantityProduced  Int
+  quantityRemaining Int
+  /// Estimated cost per unit (paise), optional
+  costPerUnit       Int?
+  note              String?
+  createdById       String?
+  movements         BatchMovement[]
+  createdAt         DateTime        @default(now())
+
+  @@index([variantId, expiresAt])
+  @@index([expiresAt])
+}
+
+model BatchMovement {
+  id        String      @id @default(cuid())
+  batchId   String
+  batch     Batch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  change    Int // + added, − removed
+  reason    BatchReason
+  orderId   String?
+  order     Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  staffId   String?
+  note      String?
+  createdAt DateTime    @default(now())
+
+  @@index([batchId, createdAt])
+  @@index([orderId])
+}
+
+model AuditLog {
+  id         String     @id @default(cuid())
+  actorType  ActorType
+  staffId    String?
+  staff      StaffUser? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  businessId String?
+  business   Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  summary    String
+  meta       Json?
+  ip         String?
+  createdAt  DateTime   @default(now())
+
+  @@index([createdAt])
+  @@index([entityType, entityId])
 }

@@ -16,6 +16,18 @@ export const ACCESS = {
   staff: ["OWNER"],
   settings: ["OWNER"],
   shopToggle: ["OWNER", "MANAGER"],
+  // ── Wholesale (B2B) ──
+  businesses: ["OWNER", "MANAGER"],
+  credit: ["OWNER", "MANAGER"],
+  pricing: ["OWNER", "MANAGER"],
+  quotations: ["OWNER", "MANAGER"],
+  /** Record payments against orders (like "mark paid"). */
+  payments: ["OWNER", "MANAGER", "STAFF"],
+  paymentsRefund: ["OWNER", "MANAGER"],
+  invoices: ["OWNER", "MANAGER", "STAFF"],
+  deliveries: ["OWNER", "MANAGER", "STAFF"],
+  batches: ["OWNER", "MANAGER"],
+  auditLog: ["OWNER"],
 } as const satisfies Record<string, readonly Role[]>;
 
 export type Area = keyof typeof ACCESS;

@@ -10,14 +10,16 @@ import { Panel } from "@/components/admin/ui";
 import { saveSettings, type SettingsInput } from "@/server/actions/admin/config";
 import { WEEKDAYS, WEEKDAY_LABELS, type OpeningHours } from "@/lib/shop-hours";
 import { paiseToRupees, rupeesToPaise } from "@/lib/money";
+import { StateSelect } from "@/components/ui/state-select";
 
-type Form = Omit<SettingsInput, "openingHours" | "minOrderAmount"> & { openingHours: OpeningHours; minOrderAmount: number };
+type Form = Omit<SettingsInput, "openingHours" | "minOrderAmount" | "wholesaleMinOrder"> & { openingHours: OpeningHours; minOrderAmount: number; wholesaleMinOrder: number };
 
 export function SettingsForm({ initial }: { initial: Form }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [f, setF] = useState(initial);
   const [minOrder, setMinOrder] = useState(String(paiseToRupees(initial.minOrderAmount)));
+  const [wsMin, setWsMin] = useState(String(paiseToRupees(initial.wholesaleMinOrder)));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
   const text = (k: keyof Form) => ({
@@ -34,7 +36,7 @@ export function SettingsForm({ initial }: { initial: Form }) {
       onSubmit={(e) => {
         e.preventDefault();
         start(async () => {
-          const res = await saveSettings({ ...f, minOrderAmount: rupeesToPaise(Number(minOrder) || 0) });
+          const res = await saveSettings({ ...f, minOrderAmount: rupeesToPaise(Number(minOrder) || 0), wholesaleMinOrder: rupeesToPaise(Number(wsMin) || 0) });
           if (res.ok) {
             toast.success(res.message ?? "Saved");
             setErrors({});
@@ -141,6 +143,39 @@ export function SettingsForm({ initial }: { initial: Form }) {
                 <Switch checked={!!f[k]} onChange={(v) => set(k, v)} label={label} />
               </label>
             ))}
+          </div>
+        </Panel>
+
+        <Panel title="Wholesale & GST">
+          <label className="flex items-center justify-between font-semibold">
+            Accept wholesale (B2B) orders
+            <Switch checked={!!f.wholesaleEnabled} onChange={(v) => set("wholesaleEnabled", v)} label="Wholesale ordering" />
+          </label>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Field label="Legal name on invoices" htmlFor="st-legalName" className="sm:col-span-2" hint="Defaults to the shop name">
+              <Input {...text("legalName")} />
+            </Field>
+            <Field label="Shop GSTIN" htmlFor="st-gstin" error={errors.gstin}>
+              <Input {...text("gstin")} className="font-mono uppercase" placeholder="27ABCDE1234F1Z5" />
+            </Field>
+            <Field label="Shop state (place of supply)" htmlFor="st-stateCode" error={errors.stateCode}>
+              <StateSelect id="st-stateCode" value={f.stateCode} onChange={(e) => set("stateCode", e.target.value)} />
+            </Field>
+            <Field label="Wholesale minimum order (₹, before GST)" htmlFor="st-wsmin" error={errors.wholesaleMinOrder}>
+              <Input id="st-wsmin" type="number" min={0} value={wsMin} onChange={(e) => setWsMin(e.target.value)} />
+            </Field>
+            <Field label="Default credit days" htmlFor="st-credit" error={errors.defaultCreditDays} hint="For newly registered businesses">
+              <Input id="st-credit" type="number" min={0} max={180} value={f.defaultCreditDays} onChange={(e) => set("defaultCreditDays", Number(e.target.value))} />
+            </Field>
+            <Field label="Quotation valid for (days)" htmlFor="st-quote" error={errors.quotationValidDays}>
+              <Input id="st-quote" type="number" min={1} max={90} value={f.quotationValidDays} onChange={(e) => set("quotationValidDays", Number(e.target.value))} />
+            </Field>
+            <Field label="Bank details (printed on invoices)" htmlFor="st-bankDetails" className="sm:col-span-2" hint="Account name, number, IFSC, UPI ID">
+              <Textarea {...text("bankDetails")} />
+            </Field>
+            <Field label="Invoice terms" htmlFor="st-invoiceTerms" className="sm:col-span-2">
+              <Textarea {...text("invoiceTerms")} placeholder="Goods once sold will not be taken back. Interest @18% p.a. on overdue bills." />
+            </Field>
           </div>
         </Panel>
 
