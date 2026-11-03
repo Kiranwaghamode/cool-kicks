@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/field";
 
 type Range = "today" | "week" | "month" | "custom";
 
-export function RangePicker({ range, from, to }: { range: Range; from: string; to: string }) {
+export function RangePicker({ range, from, to, basePath = "/admin/reports" }: { range: Range; from: string; to: string; basePath?: string }) {
   const router = useRouter();
   const [custom, setCustom] = useState(range === "custom");
   const [f, setF] = useState(from);
@@ -21,7 +21,7 @@ export function RangePicker({ range, from, to }: { range: Range; from: string; t
         onChange={(v: Range) => {
           if (v === "custom") return setCustom(true);
           setCustom(false);
-          router.push(`/admin/reports?range=${v}`);
+          router.push(`${basePath}?range=${v}`);
         }}
         items={[
           { value: "today", label: "Today" },
@@ -35,7 +35,7 @@ export function RangePicker({ range, from, to }: { range: Range; from: string; t
           className="flex flex-wrap items-end gap-2"
           onSubmit={(e) => {
             e.preventDefault();
-            router.push(`/admin/reports?range=custom&from=${f}&to=${t}`);
+            router.push(`${basePath}?range=custom&from=${f}&to=${t}`);
           }}
         >
           <label className="text-xs font-semibold text-ink-soft">

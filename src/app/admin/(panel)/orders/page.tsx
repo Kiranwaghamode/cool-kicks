@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/admin/ui";
 import { OrdersBoard, type OrderRow, type TabKey } from "./orders-board";
 import { requireRole } from "@/server/auth-guard";
@@ -15,7 +16,7 @@ const TAB_STATUSES: Record<TabKey, OrderStatus[] | null> = {
   ALL: null,
   NEW: ["PLACED"],
   CONFIRMED: ["CONFIRMED"],
-  PREPARING: ["PREPARING"],
+  PREPARING: ["PREPARING", "PACKED"],
   READY: ["READY_FOR_PICKUP"],
   OUT: ["OUT_FOR_DELIVERY"],
   DELIVERED: ["DELIVERED"],
@@ -42,9 +43,11 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
             { orderNumber: { contains: q.toUpperCase() } },
             { customerPhone: { contains: q.replace(/\D/g, "") || q } },
             { customerName: { contains: q, mode: "insensitive" } },
+            { poNumber: { contains: q, mode: "insensitive" } },
           ],
         }
       : {}),
+    ...(str("channel") === "WHOLESALE" || str("channel") === "RETAIL" ? { channel: str("channel") as "WHOLESALE" | "RETAIL" } : {}),
     ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lt: addDays(to, 1) } : {}) } } : {}),
   };
   const statuses = TAB_STATUSES[tab];
@@ -78,11 +81,34 @@ export default async function AdminOrdersPage({ searchParams }: PageProps<"/admi
     fulfilment: o.fulfilment,
     status: o.status as OrderStatus,
     createdAt: o.createdAt.toISOString(),
+    channel: o.channel,
+    poNumber: o.poNumber,
   }));
 
   return (
     <>
-      <PageHeader title="Orders" description="New orders refresh automatically every 15 seconds." />
+      <PageHeader
+        title="Orders"
+        description="New orders refresh automatically every 15 seconds."
+        actions={
+          <nav aria-label="Order channel" className="flex gap-1 rounded-full bg-cream p-1 text-sm font-semibold">
+            {[
+              ["", "All"],
+              ["RETAIL", "Retail"],
+              ["WHOLESALE", "Wholesale"],
+            ].map(([v, label]) => (
+              <Link
+                key={v}
+                href={`/admin/orders?channel=${v}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+                aria-current={str("channel") === v ? "page" : undefined}
+                className={str("channel") === v ? "rounded-full bg-brand px-4 py-2 text-white" : "rounded-full px-4 py-2 text-ink-soft hover:bg-surface"}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+        }
+      />
       <OrdersBoard
         rows={rows}
         counts={counts}

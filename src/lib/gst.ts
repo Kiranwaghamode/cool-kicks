@@ -168,3 +168,13 @@ export function amountInWords(paise: number): string {
   const p = Math.abs(paise) % 100;
   return `Rupees ${words(rupees)}${p ? ` and ${two(p)} Paise` : ""} Only`;
 }
+
+/** URL-safe form of an invoice number: CK/26-27/00012 ↔ CK-26-27-00012. */
+export function invoiceSlug(number: string) {
+  return number.replace(/\//g, "-");
+}
+
+export function invoiceNumberFromSlug(slug: string): string | null {
+  const m = /^CK-(\d{2}-\d{2})-(\d{1,8})$/.exec(decodeURIComponent(slug).toUpperCase());
+  return m ? `CK/${m[1]}/${m[2]}` : null;
+}

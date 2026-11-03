@@ -50,7 +50,10 @@ export const registerBusinessSchema = z
     type: z.enum(BUSINESS_TYPES, { message: "Choose retailer or distributor" }),
     contactName: z.string().trim().min(2, "Enter the contact person's name").max(60),
     phone: indianMobile,
-    email: z.union([z.string().trim().toLowerCase().email("Enter a valid email"), z.literal("")]).optional().default(""),
+    email: z
+      .union([z.string().trim().toLowerCase().email("Enter a valid email"), z.literal("")])
+      .optional()
+      .default(""),
     password,
     gstin: optionalGstin.optional().default(""),
     pan: optionalPan.optional().default(""),
@@ -60,9 +63,17 @@ export const registerBusinessSchema = z
   })
   .superRefine((v, ctx) => {
     if (v.gstin && v.gstin.slice(0, 2) !== v.stateCode)
-      ctx.addIssue({ code: "custom", path: ["stateCode"], message: "State must match your GSTIN (first two digits)" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["stateCode"],
+        message: "State must match your GSTIN (first two digits)",
+      });
     if (v.gstin && v.pan && v.gstin.slice(2, 12) !== v.pan)
-      ctx.addIssue({ code: "custom", path: ["pan"], message: "PAN doesn't match the one inside your GSTIN" });
+      ctx.addIssue({
+        code: "custom",
+        path: ["pan"],
+        message: "PAN doesn't match the one inside your GSTIN",
+      });
   });
 export type RegisterBusinessForm = z.input<typeof registerBusinessSchema>;
 
@@ -97,23 +108,41 @@ export const bulkCartSchema = z.object({
 });
 export type BulkCartInput = z.input<typeof bulkCartSchema>;
 
-export const wholesaleCheckoutSchema = z
-  .object({
-    fulfilment: z.enum(["PICKUP", "DELIVERY"]),
-    addressId: z.string().max(40).optional().default(""),
-    scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a delivery date"),
-    slot: z.enum(DELIVERY_SLOTS),
-    paymentMethod: z.enum(WHOLESALE_PAYMENT_METHODS),
-    poNumber: z.string().trim().max(40).regex(/^[A-Za-z0-9/_.-]*$/, "Letters, numbers and / - _ . only").optional().default(""),
-    poDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")]).optional().default(""),
-    notes: z.string().trim().max(500).optional().default(""),
-  })
-  .superRefine((v, ctx) => {
-    if (v.fulfilment === "DELIVERY" && !v.addressId)
-      ctx.addIssue({ code: "custom", path: ["addressId"], message: "Choose a delivery address" });
-    if (v.fulfilment === "DELIVERY" && v.paymentMethod === "PAY_AT_SHOP")
-      ctx.addIssue({ code: "custom", path: ["paymentMethod"], message: "Pay at shop is for pickup orders" });
-    if (v.fulfilment === "PICKUP" && v.paymentMethod === "CASH_ON_DELIVERY")
-      ctx.addIssue({ code: "custom", path: ["paymentMethod"], message: "Cash on delivery is for delivery orders" });
-  });
+/** Delivery date, slot, payment and PO fields (no cross-field rules, so it can be extended). */
+export const wholesaleCheckoutBase = z.object({
+  fulfilment: z.enum(["PICKUP", "DELIVERY"]),
+  addressId: z.string().max(40).optional().default(""),
+  scheduledDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a delivery date"),
+  slot: z.enum(DELIVERY_SLOTS),
+  paymentMethod: z.enum(WHOLESALE_PAYMENT_METHODS),
+  poNumber: z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^[A-Za-z0-9/_.-]*$/, "Letters, numbers and / - _ . only")
+    .optional()
+    .default(""),
+  poDate: z
+    .union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal("")])
+    .optional()
+    .default(""),
+  notes: z.string().trim().max(500).optional().default(""),
+});
+
+export const wholesaleCheckoutSchema = wholesaleCheckoutBase.superRefine((v, ctx) => {
+  if (v.fulfilment === "DELIVERY" && !v.addressId)
+    ctx.addIssue({ code: "custom", path: ["addressId"], message: "Choose a delivery address" });
+  if (v.fulfilment === "DELIVERY" && v.paymentMethod === "PAY_AT_SHOP")
+    ctx.addIssue({
+      code: "custom",
+      path: ["paymentMethod"],
+      message: "Pay at shop is for pickup orders",
+    });
+  if (v.fulfilment === "PICKUP" && v.paymentMethod === "CASH_ON_DELIVERY")
+    ctx.addIssue({
+      code: "custom",
+      path: ["paymentMethod"],
+      message: "Cash on delivery is for delivery orders",
+    });
+});
 export type WholesaleCheckoutForm = z.input<typeof wholesaleCheckoutSchema>;

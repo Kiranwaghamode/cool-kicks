@@ -7,7 +7,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/field";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Panel, PaymentBadge, StatusBadge, TableWrap, td, th } from "@/components/admin/ui";
+import { Panel, PaymentBadge, StatusBadge, TableWrap, WholesaleBadge, td, th } from "@/components/admin/ui";
 import { OrderDrawer } from "./order-drawer";
 import { formatPaise } from "@/lib/money";
 import { formatDateTime } from "@/lib/order-format";
@@ -29,12 +29,14 @@ export type OrderRow = {
   fulfilment: Fulfilment;
   status: OrderStatus;
   createdAt: string;
+  channel: "RETAIL" | "WHOLESALE";
+  poNumber: string | null;
 };
 
 const TABS: { value: TabKey; label: string }[] = [
   { value: "NEW", label: "New" },
   { value: "CONFIRMED", label: "Confirmed" },
-  { value: "PREPARING", label: "Preparing" },
+  { value: "PREPARING", label: "Preparing / packed" },
   { value: "READY", label: "Ready" },
   { value: "OUT", label: "Out for delivery" },
   { value: "DELIVERED", label: "Delivered" },
@@ -261,7 +263,8 @@ export function OrdersBoard({
                       </button>
                     </td>
                     <td className={td}>
-                      <span className="font-semibold">{r.customerName}</span>
+                      <span className="font-semibold">{r.customerName}</span> {r.channel === "WHOLESALE" && <WholesaleBadge />}
+                      {r.poNumber && <span className="block text-xs text-ink-muted">PO {r.poNumber}</span>}
                       <a href={`tel:+91${r.customerPhone}`} onClick={(e) => e.stopPropagation()} className="block text-xs text-ink-muted hover:text-brand-deep">
                         {r.customerPhone}
                       </a>
