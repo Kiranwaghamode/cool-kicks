@@ -210,7 +210,11 @@ async function main() {
     console.log(`Owner account: ${email}`);
   }
 
+  await seedWholesale();
+
   const counts = {
+    businesses: await db.business.count(),
+    wholesaleVariants: await db.productVariant.count({ where: { wholesaleEnabled: true } }),
     categories: await db.category.count(),
     products: await db.product.count(),
     variants: await db.productVariant.count(),
@@ -222,6 +226,142 @@ async function main() {
     staff: await db.staffUser.count(),
   };
   console.table(counts);
+}
+
+/**
+ * Wholesale (B2B) sample data. Only fills in what is missing, so re-running the seed never
+ * overwrites prices or settings changed in the admin panel.
+ */
+async function seedWholesale() {
+  // Shop GST details (placeholders – update in Admin → Settings → Wholesale & GST).
+  const settings = await db.shopSettings.findUniqueOrThrow({ where: { id: 1 } });
+  if (!settings.gstin) {
+    await db.shopSettings.update({
+      where: { id: 1 },
+      data: {
+        legalName: "Cool Kick Beverages",
+        gstin: "27ABCDE1234F1Z0", // dummy, valid format
+        stateCode: "27",
+        wholesaleMinOrder: rupees(2000),
+        bankDetails: "Cool Kick Beverages · A/c 000000000000 · IFSC ABCD0000000 · UPI coolkick@upi (placeholder)",
+        invoiceTerms: "Goods once delivered will not be taken back. Please pay by the due date. Subject to Pune jurisdiction.",
+      },
+    });
+  }
+
+  // Price lists and customer groups.
+  const retailList = await db.priceList.upsert({
+    where: { name: "Retail partners" },
+    update: {},
+    create: { name: "Retail partners", description: "Standard trade prices for shops and cafés", discountBps: 0 },
+  });
+  const distributorList = await db.priceList.upsert({
+    where: { name: "Distributors" },
+    update: {},
+    create: { name: "Distributors", description: "8% below trade price for distributors", discountBps: 800 },
+  });
+  await db.customerGroup.upsert({
+    where: { name: "Retailers" },
+    update: {},
+    create: { name: "Retailers", description: "Shops, cafés, canteens", priceListId: retailList.id },
+  });
+  await db.customerGroup.upsert({
+    where: { name: "Distributors" },
+    update: {},
+    create: { name: "Distributors", description: "Resell to other shops", priceListId: distributorList.id },
+  });
+
+  // Wholesale on the Medium (350 ml) and Large (500 ml) sizes: ~60% of retail, sold by the case.
+  const variants = await db.productVariant.findMany({
+    where: { size: { in: ["MEDIUM", "LARGE"] }, wholesalePrice: null },
+    include: { product: { select: { id: true, hsnCode: true, category: { select: { slug: true } } } } },
+  });
+  for (const v of variants) {
+    const pack = v.size === "MEDIUM" ? 24 : 12;
+    await db.productVariant.update({
+      where: { id: v.id },
+      data: {
+        wholesaleEnabled: true,
+        wholesalePrice: Math.round((v.price * 0.6) / 100) * 100,
+        packSize: pack,
+        moq: pack * 2,
+        packaging: `Case of ${pack} bottles`,
+        tiers: {
+          create: [
+            { minQuantity: pack * 5, discountBps: 300 },
+            { minQuantity: pack * 10, discountBps: 600 },
+          ],
+        },
+      },
+    });
+    if (!v.product.hsnCode) {
+      const juice = /juice/.test(v.product.category.slug);
+      await db.product.update({ where: { id: v.product.id }, data: { hsnCode: juice ? "2009" : "2202", gstRateBps: 1200 } });
+    }
+  }
+
+  // A few finished-goods batches so stock shows up in the catalogue.
+  if ((await db.batch.count()) === 0) {
+    const stockVariants = await db.productVariant.findMany({ where: { wholesaleEnabled: true, size: "LARGE" }, take: 6, orderBy: { id: "asc" } });
+    const day = 86_400_000;
+    for (const [i, v] of stockVariants.entries()) {
+      const qty = 120 + i * 24;
+      const batch = await db.batch.create({
+        data: {
+          batchNumber: `B-SEED-${String(i + 1).padStart(3, "0")}`,
+          variantId: v.id,
+          manufacturedAt: new Date(Date.now() - day),
+          expiresAt: new Date(Date.now() + (i === 0 ? 2 : 10) * day),
+          quantityProduced: qty,
+          quantityRemaining: qty,
+          costPerUnit: Math.round((v.wholesalePrice ?? 0) * 0.55),
+          note: "Seed batch",
+        },
+      });
+      await db.batchMovement.create({ data: { batchId: batch.id, change: qty, reason: "PRODUCTION", note: "Seed batch" } });
+    }
+  }
+
+  // Demo approved retailer – only when a password is provided (never in production by accident).
+  const demoPassword = process.env.SEED_DEMO_BUSINESS_PASSWORD;
+  if (demoPassword) {
+    const group = await db.customerGroup.findUniqueOrThrow({ where: { name: "Retailers" } });
+    const exists = await db.business.findUnique({ where: { phone: "9000000001" } });
+    if (!exists) {
+      await db.business.create({
+        data: {
+          legalName: "Sunrise Mart Private Limited",
+          tradeName: "Sunrise Mart",
+          type: "RETAILER",
+          status: "APPROVED",
+          approvedAt: new Date(),
+          contactName: "Priya Kulkarni",
+          phone: "9000000001",
+          email: "orders@sunrisemart.example",
+          passwordHash: await bcrypt.hash(demoPassword, 12),
+          gstin: "27AAPFU0939F1ZV", // GST portal sample format
+          pan: "AAPFU0939F",
+          stateCode: "27",
+          groupId: group.id,
+          credit: { create: { isActive: true, creditLimit: rupees(50000), creditDays: 15 } },
+          addresses: {
+            create: {
+              label: "Sunrise Mart, FC Road",
+              contactName: "Priya Kulkarni",
+              phone: "9000000001",
+              line1: "Shop 4, Deccan Plaza, FC Road",
+              area: "Shivajinagar",
+              city: "Pune",
+              state: "Maharashtra",
+              pincode: "411005",
+              isDefault: true,
+            },
+          },
+        },
+      });
+      console.log("Demo business: 9000000001 (password from SEED_DEMO_BUSINESS_PASSWORD)");
+    }
+  }
 }
 
 main()

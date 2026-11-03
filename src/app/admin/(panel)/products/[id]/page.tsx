@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { PageHeader } from "@/components/admin/ui";
 import { ProductForm } from "./product-form";
+import { WholesaleForm } from "./wholesale-form";
 import { requireRole } from "@/server/auth-guard";
 import { db } from "@/lib/db";
 
@@ -13,7 +14,7 @@ export default async function ProductEditPage({ params }: PageProps<"/admin/prod
   const { id } = await params;
   const isNew = id === "new";
   const [product, categories, ingredients] = await Promise.all([
-    isNew ? null : db.product.findUnique({ where: { id }, include: { variants: true, recipe: true } }),
+    isNew ? null : db.product.findUnique({ where: { id }, include: { variants: { include: { tiers: { orderBy: { minQuantity: "asc" } } }, orderBy: { volumeMl: "asc" } }, recipe: true } }),
     db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
     db.ingredient.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, unit: true } }),
   ]);
@@ -49,6 +50,25 @@ export default async function ProductEditPage({ params }: PageProps<"/admin/prod
             : null
         }
       />
+      {product && (
+        <WholesaleForm
+          productId={product.id}
+          gstRateBps={product.gstRateBps}
+          hsnCode={product.hsnCode ?? ""}
+          variants={product.variants.map((v) => ({
+            variantId: v.id,
+            size: v.size,
+            volumeMl: v.volumeMl,
+            retailPrice: v.price,
+            wholesaleEnabled: v.wholesaleEnabled,
+            wholesalePrice: v.wholesalePrice,
+            moq: v.moq,
+            packSize: v.packSize,
+            packaging: v.packaging ?? "",
+            tiers: v.tiers.map((t) => ({ minQuantity: t.minQuantity, discountBps: t.discountBps })),
+          }))}
+        />
+      )}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { adminAction } from "@/server/auth-guard";
 import { saveImage, UploadError } from "@/server/storage";
 import { slugify } from "@/lib/utils";
 import { Prisma } from "@/generated/prisma/client";
+import { audit } from "@/server/audit";
 
 /** All shop pages read live data; this refreshes any cached RSC payloads. */
 function refreshShop() {
@@ -107,7 +108,17 @@ export async function saveProduct(input: ProductInput) {
 
       // Variants: upsert by size, remove sizes no longer offered.
       const sizes = p.variants.map((v) => v.size);
-      await tx.productVariant.deleteMany({ where: { productId: product.id, size: { notIn: sizes } } });
+      const removed = await tx.productVariant.findMany({
+        where: { productId: product.id, size: { notIn: sizes } },
+        select: { id: true, _count: { select: { batches: true, quotationItems: true } } },
+      });
+      for (const r of removed) {
+        if (r._count.batches || r._count.quotationItems) {
+          await tx.productVariant.update({ where: { id: r.id }, data: { isAvailable: false, wholesaleEnabled: false } });
+        } else {
+          await tx.productVariant.delete({ where: { id: r.id } });
+        }
+      }
       for (const v of p.variants) {
         await tx.productVariant.upsert({
           where: { productId_size: { productId: product.id, size: v.size } },
@@ -214,4 +225,74 @@ export async function reorderCategories(ids: string[]) {
 
 export async function suggestSlug(name: string) {
   return slugify(name);
+}
+
+// ───────────────────────── Wholesale settings per product ─────────────────────────
+
+const tierSchema = z.object({
+  minQuantity: z.number().int().min(2, "Tier quantity must be at least 2").max(1_000_000),
+  discountBps: z.number().int().min(1, "Discount must be above 0%").max(9000, "Discount can't exceed 90%"),
+});
+
+const wholesaleSchema = z.object({
+  productId: z.string().min(1),
+  gstRateBps: z.union([z.literal(0), z.literal(500), z.literal(1200), z.literal(1800), z.literal(2800)]),
+  hsnCode: z
+    .string()
+    .trim()
+    .regex(/^(\d{4}|\d{6}|\d{8})?$/, "HSN codes are 4, 6 or 8 digits")
+    .optional()
+    .default(""),
+  variants: z
+    .array(
+      z
+        .object({
+          variantId: z.string().min(1),
+          wholesaleEnabled: z.boolean(),
+          wholesalePrice: z.number().int().min(1, "Enter a wholesale price").max(100_000_000).nullable(),
+          moq: z.number().int().min(1, "MOQ must be at least 1").max(1_000_000),
+          packSize: z.number().int().min(1, "Pack size must be at least 1").max(10_000),
+          packaging: z.string().trim().max(60).optional().default(""),
+          tiers: z
+            .array(tierSchema)
+            .max(6)
+            .refine((t) => new Set(t.map((x) => x.minQuantity)).size === t.length, "Each tier needs a different quantity")
+            .default([]),
+        })
+        .superRefine((v, ctx) => {
+          if (v.wholesaleEnabled && v.wholesalePrice === null) ctx.addIssue({ code: "custom", path: ["wholesalePrice"], message: "Enter a wholesale price" });
+          if (v.moq % v.packSize !== 0) ctx.addIssue({ code: "custom", path: ["moq"], message: "MOQ must be a whole number of packs" });
+        }),
+    )
+    .max(3),
+});
+
+export type ProductWholesaleInput = z.input<typeof wholesaleSchema>;
+
+export async function saveProductWholesale(input: ProductWholesaleInput) {
+  return adminAction("products", async (staff) => {
+    const parsed = wholesaleSchema.safeParse(input);
+    if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please fix the form", fieldErrors: fieldErrors(parsed.error) };
+    const w = parsed.data;
+    const product = await db.product.findUnique({ where: { id: w.productId }, select: { name: true, variants: { select: { id: true } } } });
+    if (!product) return { ok: false, error: "Product not found" };
+    const own = new Set(product.variants.map((v) => v.id));
+    if (w.variants.some((v) => !own.has(v.variantId))) return { ok: false, error: "Invalid size" };
+
+    await db.$transaction(async (tx) => {
+      await tx.product.update({ where: { id: w.productId }, data: { gstRateBps: w.gstRateBps, hsnCode: w.hsnCode || null } });
+      for (const v of w.variants) {
+        await tx.productVariant.update({
+          where: { id: v.variantId },
+          data: { wholesaleEnabled: v.wholesaleEnabled, wholesalePrice: v.wholesalePrice, moq: v.moq, packSize: v.packSize, packaging: v.packaging || null },
+        });
+        await tx.volumePriceTier.deleteMany({ where: { variantId: v.variantId } });
+        if (v.tiers.length) await tx.volumePriceTier.createMany({ data: v.tiers.map((t) => ({ variantId: v.variantId, ...t })) });
+      }
+      await audit({ staffId: staff.id }, { action: "product.wholesale", entityType: "Product", entityId: w.productId, summary: `Updated wholesale pricing for ${product.name}` }, tx);
+    });
+    revalidatePath(`/admin/products/${w.productId}`);
+    revalidatePath("/business", "layout");
+    return { ok: true, message: "Wholesale settings saved" };
+  });
 }
