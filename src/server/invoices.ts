@@ -1,6 +1,7 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import { dueDateFor } from "@/lib/credit";
+import { addDays, startOfDayIST } from "@/lib/dates";
 import { financialYear, formatInvoiceNumber, stateName } from "@/lib/gst";
 import { calculateWholesaleTotals } from "@/lib/wholesale-pricing";
 import { audit } from "@/server/audit";
@@ -52,6 +53,7 @@ export async function issueInvoice(tx: Tx, orderId: string, staffId: string | nu
       include: {
         items: { orderBy: { id: "asc" } },
         business: { include: { credit: true, addresses: { where: { isDefault: true, isActive: true }, take: 1 } } },
+        delivery: { select: { scheduledDate: true } },
       },
     }),
     tx.shopSettings.findUniqueOrThrow({ where: { id: 1 } }),
@@ -76,7 +78,10 @@ export async function issueInvoice(tx: Tx, orderId: string, staffId: string | nu
     RETURNING "last"`;
   const number = formatInvoiceNumber(fy, counter.last);
   const issuedAt = new Date();
-  const dueDate = o.paymentMethod === "CREDIT" ? dueDateFor(issuedAt, o.business.credit?.creditDays ?? s.defaultCreditDays) : issuedAt;
+  // Credit: issue date + credit days. Otherwise payment is due on delivery / pickup – the end of
+  // the scheduled day (never before the end of the issue day), so it isn't "overdue" in transit.
+  const dueOnHandover = new Date(Math.max(addDays(startOfDayIST(o.delivery?.scheduledDate ?? issuedAt), 1).getTime(), addDays(startOfDayIST(issuedAt), 1).getTime()) - 1);
+  const dueDate = o.paymentMethod === "CREDIT" ? dueDateFor(issuedAt, o.business.credit?.creditDays ?? s.defaultCreditDays) : dueOnHandover;
 
   const b = o.business;
   const billing = b.addresses[0];

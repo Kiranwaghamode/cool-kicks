@@ -20,6 +20,7 @@ Both use the same environment variables and database steps.
 | `NEXT_PUBLIC_WHATSAPP_NUMBER` | `919876543210` | Digits only, with country code. |
 | `NEXT_PUBLIC_SHOP_PHONE` | `+919876543210` | Shown on the site (also editable in Admin → Settings). |
 | `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` | `owner@coolkick.in` / strong password | Only used once, when seeding the first owner account. |
+| `SEED_DEMO_BUSINESS_PASSWORD` | leave **unset** in production | Optional, for demos/staging only: seeding then creates an approved demo retailer (login `9000000001`). |
 | `STORAGE_DRIVER` | `local` / `cloudinary` / `s3` | See section 5. Use `cloudinary` on Vercel. |
 | `CLOUDINARY_CLOUD_NAME` / `_API_KEY` / `_API_SECRET` | from cloudinary.com dashboard | Only with `STORAGE_DRIVER=cloudinary`. |
 
@@ -144,4 +145,5 @@ Copy `/var/backups/coolkick` off the server (e.g. `rclone` to Google Drive/S3) a
 - Monitor `https://<domain>/api/health` with a free uptime checker (UptimeRobot, Better Stack).
 - Have the owner review prices, delivery zones, opening hours and the **draft** policy pages (`/privacy`, `/terms`, `/refund-policy`).
 - Replace the placeholder photos: upload real ones in Admin → Products, or put files in `public/images/products/<slug>.webp`.
+- **Wholesale (B2B):** in Admin → Settings → *Wholesale & GST*, replace the placeholder GSTIN, legal name, bank details and invoice terms (they are printed on every GST invoice), and check the shop state and wholesale minimum order. In Products → edit → *Wholesale*, check each product's GST rate, HSN code, wholesale price, MOQ and pack size. Business verification documents are stored in the database (not in `/uploads`), so database backups cover them.
 - Submit `https://<domain>/sitemap.xml` in Google Search Console and set up a Google Business Profile with the same address/phone.

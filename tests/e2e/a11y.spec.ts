@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 // Automated WCAG 2.1 AA checks on the main customer pages (desktop project only to keep runs short).
-const PAGES = ["/", "/menu", "/product/mango-mastani", "/cart", "/checkout", "/track", "/contact", "/offers", "/faq", "/privacy", "/admin/login"];
+const PAGES = ["/", "/menu", "/product/mango-mastani", "/cart", "/checkout", "/track", "/contact", "/offers", "/faq", "/privacy", "/admin/login", "/business", "/business/login", "/business/register"];
 
 for (const path of PAGES) {
   test(`no serious accessibility violations on ${path}`, async ({ page }, info) => {
@@ -28,7 +28,7 @@ test("no serious accessibility violations on admin pages", async ({ page }, info
   await clearRateLimits();
   await adminLogin(page, OWNER.email, OWNER.password);
   const problems: string[] = [];
-  for (const path of ["/admin", "/admin/orders", "/admin/products", "/admin/inventory", "/admin/reports", "/admin/coupons", "/admin/settings"]) {
+  for (const path of ["/admin", "/admin/orders", "/admin/products", "/admin/inventory", "/admin/reports", "/admin/coupons", "/admin/settings", "/admin/businesses", "/admin/quotations", "/admin/payments", "/admin/invoices", "/admin/deliveries", "/admin/finished-stock", "/admin/pricing", "/admin/audit-log"]) {
     await page.goto(path, { waitUntil: "networkidle" });
     const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).exclude("nextjs-portal").analyze();
     for (const v of results.violations.filter((x) => x.impact === "serious" || x.impact === "critical")) {

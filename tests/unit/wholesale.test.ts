@@ -178,3 +178,19 @@ describe("wholesale order statuses", () => {
     expect(timelineSteps("PICKUP", "WHOLESALE")).toHaveLength(6);
   });
 });
+
+describe("payments and invoice links", () => {
+  it("derives payment status from amount paid", async () => {
+    const { paymentStatusFor } = await import("@/lib/credit");
+    expect(paymentStatusFor(1000, 0, false)).toBe("PENDING");
+    expect(paymentStatusFor(1000, 400, false)).toBe("PARTIALLY_PAID");
+    expect(paymentStatusFor(1000, 1000, false)).toBe("PAID");
+    expect(paymentStatusFor(1000, 0, true)).toBe("REFUNDED");
+  });
+  it("round-trips invoice numbers through URL slugs", async () => {
+    const { invoiceNumberFromSlug, invoiceSlug } = await import("@/lib/gst");
+    expect(invoiceSlug("CK/26-27/00012")).toBe("CK-26-27-00012");
+    expect(invoiceNumberFromSlug("CK-26-27-00012")).toBe("CK/26-27/00012");
+    expect(invoiceNumberFromSlug("../etc/passwd")).toBeNull();
+  });
+});
