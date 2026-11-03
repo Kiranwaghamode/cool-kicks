@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertTriangle, Ban, ClipboardList, IndianRupee, Receipt, Timer } from "lucide-react";
+import { AlertTriangle, Ban, Building2, ClipboardList, IndianRupee, PackageX, Receipt, ScrollText, Timer, Wallet } from "lucide-react";
 import { PageHeader, Panel, StatTile, StatusBadge, PaymentBadge, th, td, TableWrap } from "@/components/admin/ui";
 import { DailySalesChart } from "@/components/admin/charts";
 import { LinkButton } from "@/components/ui/button";
@@ -37,6 +37,52 @@ export default async function DashboardPage() {
         <StatTile label="Avg order value" value={formatPaise(d.avgOrderValue)} icon={<IndianRupee />} tone="mango" />
         <StatTile label="Cancelled today" value={d.cancelledToday} icon={<Ban />} tone="melon" />
       </div>
+
+      {d.wholesale && (
+        <Panel title="Wholesale (B2B)" className="mt-5" action={<LinkButton href="/admin/businesses" variant="outline" size="sm">Businesses</LinkButton>}>
+          {(d.wholesale.pendingApproval > 0 || d.wholesale.quoteRequests > 0 || d.wholesale.expiringBatches > 0) && (
+            <div className="mb-4 flex flex-wrap gap-2 text-sm font-semibold">
+              {d.wholesale.pendingApproval > 0 && (
+                <Link href="/admin/businesses?status=PENDING" className="rounded-full bg-mango-soft px-3 py-1.5 text-warning">
+                  {d.wholesale.pendingApproval} business{d.wholesale.pendingApproval === 1 ? "" : "es"} awaiting approval →
+                </Link>
+              )}
+              {d.wholesale.quoteRequests > 0 && (
+                <Link href="/admin/quotations?tab=REQUESTED" className="rounded-full bg-melon-soft px-3 py-1.5 text-melon-deep">
+                  {d.wholesale.quoteRequests} quotation request{d.wholesale.quoteRequests === 1 ? "" : "s"} →
+                </Link>
+              )}
+              {d.wholesale.expiringBatches > 0 && (
+                <Link href="/admin/finished-stock" className="rounded-full bg-danger-soft px-3 py-1.5 text-danger">
+                  <PackageX className="mr-1 inline size-4" aria-hidden />
+                  {d.wholesale.expiringBatches} batch{d.wholesale.expiringBatches === 1 ? "" : "es"} expiring in 3 days →
+                </Link>
+              )}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+            <StatTile label="Business customers" value={d.wholesale.approved} hint={`${d.wholesale.pendingApproval} pending approval`} icon={<Building2 />} />
+            <StatTile label="Wholesale sales (30 days)" value={formatPaise(d.wholesale.sales30)} hint={`${d.wholesale.orders30} orders · excl. GST`} icon={<IndianRupee />} tone="ice" />
+            <StatTile label="Pending quotations" value={d.wholesale.openQuotes + d.wholesale.quoteRequests} hint={`${d.wholesale.quoteRequests} new · ${d.wholesale.openQuotes} sent`} icon={<ScrollText />} tone="mango" />
+            <StatTile label="Credit balances" value={formatPaise(d.wholesale.outstanding)} hint={`${d.wholesale.creditAccounts} credit accounts · limits ${formatPaise(d.wholesale.creditLimits)}`} icon={<Wallet />} tone="mango" />
+            <StatTile label="Overdue payments" value={formatPaise(d.wholesale.overdue)} hint="Invoices past due" icon={<AlertTriangle />} tone="melon" />
+          </div>
+          {d.wholesale.overdueBusinesses.length > 0 && (
+            <ul className="mt-4 divide-y divide-line text-sm">
+              {d.wholesale.overdueBusinesses.map((o) => (
+                <li key={o.businessId} className="flex justify-between gap-3 py-2">
+                  <Link href={`/admin/businesses/${o.businessId}`} className="font-semibold text-brand-deep hover:underline">
+                    {o.name}
+                  </Link>
+                  <span className="tabular-nums">
+                    <span className="font-bold text-danger">{formatPaise(o.overdue)} overdue</span> · {formatPaise(o.outstanding)} outstanding
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      )}
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.6fr_1fr]">
         <Panel title="Sales – last 7 days" action={<span className="text-sm font-semibold text-ink-soft">{formatPaise(d.weekTotal)} total</span>}>

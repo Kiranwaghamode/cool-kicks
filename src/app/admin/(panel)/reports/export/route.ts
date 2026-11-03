@@ -2,9 +2,10 @@ import ExcelJS from "exceljs";
 import { getStaff } from "@/server/auth-guard";
 import { can } from "@/lib/permissions";
 import { getSalesReport, resolveRange } from "@/server/admin/reports";
+import { getWholesaleReport } from "@/server/admin/wholesale-reports";
 import { addDays, istDateKey } from "@/lib/dates";
 import { formatDateTime } from "@/lib/order-format";
-import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/types";
+import { BUSINESS_TYPE_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/order-status";
 
 export const dynamic = "force-dynamic";
@@ -25,12 +26,12 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const format = url.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
   const { from, to } = resolveRange("custom", url.searchParams.get("from") ?? undefined, url.searchParams.get("to") ?? undefined);
-  const r = await getSalesReport(from, to);
+  const [r, w] = await Promise.all([getSalesReport(from, to), getWholesaleReport(from, to)]);
   const label = `${istDateKey(from)}_to_${istDateKey(addDays(to, -1))}`;
 
   const summary: [string, string | number][] = [
     ["Period", `${istDateKey(from)} to ${istDateKey(addDays(to, -1))} (Asia/Kolkata)`],
-    ["Note", "Revenue figures, not profit. Cancelled/rejected orders excluded."],
+    ["Note", "Revenue figures, not profit. Cancelled/rejected orders excluded. GST is not revenue."],
     ["Gross sales (₹)", rs(r.gross)],
     ["Discounts (₹)", rs(r.discounts)],
     ["Refunds (₹)", rs(r.refunds)],
@@ -38,13 +39,17 @@ export async function GET(req: Request) {
     ["Total orders", r.orderCount],
     ["Cancelled / rejected orders", r.cancelledCount],
     ["Average order value (₹)", rs(r.avgOrderValue)],
+    ["Retail sales after discounts (₹)", rs(r.channelSplit.retail)],
+    ["Wholesale sales after discounts, excl. GST (₹)", rs(r.channelSplit.wholesale)],
+    ["GST collected on wholesale invoices (₹)", rs(r.gstCollected)],
     ["Expenses (₹)", rs(r.expenseTotal)],
     ["Estimated balance – not accounting profit (₹)", rs(r.estimatedBalance)],
   ];
-  const orderHeader = ["Order", "Date", "Customer", "Type", "Status", "Payment method", "Payment status", "Coupon", "Subtotal (₹)", "Discount (₹)", "Delivery (₹)", "Total (₹)"];
+  const orderHeader = ["Order", "Date", "Channel", "Customer", "Type", "Status", "Payment method", "Payment status", "Coupon", "Subtotal (₹)", "Discount (₹)", "Delivery (₹)", "GST (₹)", "Total (₹)"];
   const orderRows = r.orders.map((o) => [
     o.orderNumber,
     formatDateTime(o.createdAt),
+    o.channel === "WHOLESALE" ? "Wholesale" : "Retail",
     o.customerName,
     o.fulfilment === "PICKUP" ? "Pickup" : "Delivery",
     STATUS_LABELS[o.status],
@@ -54,8 +59,11 @@ export async function GET(req: Request) {
     rs(o.subtotal),
     rs(o.discount),
     rs(o.deliveryFee),
+    rs(o.taxTotal),
     rs(o.total),
   ]);
+  const businessHeader = ["Business", "Type", "Orders", "Net sales excl. GST (₹)", "GST (₹)"];
+  const businessRows = w.businesses.map((b) => [b.name, BUSINESS_TYPE_LABELS[b.type], b.orders, rs(b.net), rs(b.gst)]);
 
   if (format === "csv") {
     const lines = [
@@ -66,6 +74,9 @@ export async function GET(req: Request) {
       "",
       ["Product", "Quantity", "Revenue (₹)"].join(","),
       ...r.bestSellers.map((b) => [b.name, b.quantity, rs(b.revenue)].map(csvCell).join(",")),
+      "",
+      businessHeader.map(csvCell).join(","),
+      ...businessRows.map((row) => row.map(csvCell).join(",")),
     ];
     return new Response("\uFEFF" + lines.join("\r\n"), {
       headers: {
@@ -92,6 +103,20 @@ export async function GET(req: Request) {
   s3.addRow(["Product", "Quantity", "Revenue (₹)"]).font = { bold: true };
   r.bestSellers.forEach((b) => s3.addRow([b.name, b.quantity, rs(b.revenue)]));
   s3.columns.forEach((c) => (c.width = 24));
+
+  const s5 = wb.addWorksheet("Wholesale by business");
+  s5.addRow(businessHeader).font = { bold: true };
+  businessRows.forEach((row) => s5.addRow(row));
+  s5.addRow([]);
+  w.byType.forEach((t) => s5.addRow([t.label, "", t.orders, rs(t.value)]));
+  s5.columns.forEach((c) => (c.width = 24));
+
+  const s6 = wb.addWorksheet("Wholesale demand");
+  s6.addRow(["Product", "Units", "Revenue (₹)"]).font = { bold: true };
+  w.productDemand.forEach((d) => s6.addRow([d.name, d.units, rs(d.revenue)]));
+  s6.addRow([]);
+  s6.addRow(["Estimated gross margin (costed orders, not profit)", "", rs(w.margin.estimated)]);
+  s6.columns.forEach((c) => (c.width = 28));
 
   const s4 = wb.addWorksheet("Expenses");
   s4.addRow(["Date", "Expense", "Category", "Amount (₹)"]).font = { bold: true };

@@ -6,6 +6,8 @@ import { RangePicker } from "./range-picker";
 import { ExpensesPanel } from "./expenses-panel";
 import { requireRole } from "@/server/auth-guard";
 import { getSalesReport, resolveRange } from "@/server/admin/reports";
+import { getWholesaleReport } from "@/server/admin/wholesale-reports";
+import { WholesaleSection } from "./wholesale-section";
 import { addDays, istDateKey } from "@/lib/dates";
 import { formatPaise } from "@/lib/money";
 
@@ -16,7 +18,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
   const sp = await searchParams;
   const s = (k: string) => (typeof sp[k] === "string" ? (sp[k] as string) : undefined);
   const { key, from, to } = resolveRange(s("range"), s("from"), s("to"));
-  const r = await getSalesReport(from, to);
+  const [r, w] = await Promise.all([getSalesReport(from, to), getWholesaleReport(from, to)]);
   const fromKey = istDateKey(from);
   const toKey = istDateKey(addDays(to, -1));
   const exportQs = new URLSearchParams({ from: fromKey, to: toKey }).toString();
@@ -41,7 +43,7 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
 
       <p className="mb-4 flex items-start gap-2 rounded-2xl bg-ice px-4 py-3 text-sm text-ice-deep">
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-        These figures are <strong>&nbsp;revenue, not profit</strong>. Cancelled and rejected orders are excluded. Gross = item totals + delivery fees.
+        These figures are <strong>&nbsp;revenue, not profit</strong>. Cancelled and rejected orders are excluded. Gross = item totals + delivery fees. GST on wholesale invoices is excluded (it is shown separately).
       </p>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -53,6 +55,9 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
         <StatTile label="Cancelled / rejected" value={r.cancelledCount} tone="melon" />
         <StatTile label="Average order value" value={formatPaise(r.avgOrderValue)} tone="mango" />
         <StatTile label="Pickup · Delivery" value={`${r.fulfilmentCounts.pickup} · ${r.fulfilmentCounts.delivery}`} tone="ice" />
+        <StatTile label="Retail sales" value={formatPaise(r.channelSplit.retail)} hint="After discounts" tone="brand" />
+        <StatTile label="Wholesale sales" value={formatPaise(r.channelSplit.wholesale)} hint="After discounts, excl. GST" tone="ice" />
+        <StatTile label="GST collected" value={formatPaise(r.gstCollected)} hint="Wholesale invoices – not revenue" tone="mango" />
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.6fr_1fr]">
@@ -99,6 +104,8 @@ export default async function ReportsPage({ searchParams }: PageProps<"/admin/re
           <p className="text-sm text-ink-muted">No sales in this period.</p>
         )}
       </Panel>
+
+      <WholesaleSection w={w} />
 
       <ExpensesPanel
         expenses={r.expenses}
