@@ -3,12 +3,16 @@ import { AdminShell } from "@/components/admin/admin-shell";
 import { requireRole } from "@/server/auth-guard";
 import { db } from "@/lib/db";
 import { can } from "@/lib/permissions";
+import { getShopName } from "@/server/brand";
 
 export const dynamic = "force-dynamic";
-export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s | Cool Kick Admin" },
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: { default: "Admin", template: `%s | ${name} Admin` },
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AdminPanelLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireRole("dashboard");

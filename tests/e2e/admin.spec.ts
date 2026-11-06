@@ -67,3 +67,27 @@ test("logged-out visitors are sent to the login page", async ({ page }) => {
   const res = await page.request.get("/admin/reports/export?format=csv", { maxRedirects: 0 });
   expect([302, 303, 307, 403]).toContain(res.status());
 });
+
+test("typing in a modal keeps focus; new ingredient stock gets an expiry date", async ({ page }) => {
+  await adminLogin(page, OWNER.email, OWNER.password);
+  await page.goto("/admin/inventory");
+  await page.getByRole("button", { name: "Add ingredient" }).click();
+  const dialog = page.getByRole("dialog", { name: "Add ingredient" });
+  const name = `E2E Basil ${Date.now().toString().slice(-6)}`;
+  // One key at a time – every key must land in the same input (regression: focus was lost per keystroke).
+  await dialog.getByLabel("Name").pressSequentially(name, { delay: 30 });
+  await expect(dialog.getByLabel("Name")).toHaveValue(name);
+  await expect(dialog.getByLabel("Name")).toBeFocused();
+
+  await dialog.getByLabel("Opening stock").fill("2");
+  const save = dialog.getByRole("button", { name: "Save ingredient" });
+  await expect(save).toBeDisabled(); // expiry is required when there's opening stock
+  const inTenDays = new Date(Date.now() + 10 * 86_400_000).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  await dialog.getByLabel(/Expiry date/).fill(inTenDays);
+  await save.click();
+  await expect(dialog).toHaveCount(0);
+
+  const row = page.getByRole("row").filter({ hasText: name });
+  await expect(row).toContainText("2 kg");
+  await expect(row).toContainText("Expires");
+});

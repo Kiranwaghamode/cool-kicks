@@ -7,6 +7,7 @@ import { addDays, istDateKey } from "@/lib/dates";
 import { formatDateTime } from "@/lib/order-format";
 import { BUSINESS_TYPE_LABELS, PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/order-status";
+import { getShopName } from "@/server/brand";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function GET(req: Request) {
   const { from, to } = resolveRange("custom", url.searchParams.get("from") ?? undefined, url.searchParams.get("to") ?? undefined);
   const [r, w] = await Promise.all([getSalesReport(from, to), getWholesaleReport(from, to)]);
   const label = `${istDateKey(from)}_to_${istDateKey(addDays(to, -1))}`;
+  const filePrefix = (await getShopName()).toLowerCase().replace(/[^a-z0-9]+/g, "") || "shop";
 
   const summary: [string, string | number][] = [
     ["Period", `${istDateKey(from)} to ${istDateKey(addDays(to, -1))} (Asia/Kolkata)`],
@@ -81,14 +83,14 @@ export async function GET(req: Request) {
     return new Response("\uFEFF" + lines.join("\r\n"), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="coolkick-sales_${label}.csv"`,
+        "Content-Disposition": `attachment; filename="${filePrefix}-sales_${label}.csv"`,
         "Cache-Control": "no-store",
       },
     });
   }
 
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Cool Kick";
+  wb.creator = await getShopName();
   const s1 = wb.addWorksheet("Summary");
   s1.columns = [{ width: 48 }, { width: 40 }];
   summary.forEach((row) => s1.addRow(row));
@@ -127,7 +129,7 @@ export async function GET(req: Request) {
   return new Response(new Uint8Array(buf as ArrayBuffer), {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="coolkick-sales_${label}.xlsx"`,
+      "Content-Disposition": `attachment; filename="${filePrefix}-sales_${label}.xlsx"`,
       "Cache-Control": "no-store",
     },
   });

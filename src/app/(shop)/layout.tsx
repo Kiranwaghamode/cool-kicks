@@ -4,7 +4,6 @@ import { SiteFooter } from "@/components/shop/site-footer";
 import { WhatsAppFab } from "@/components/shop/whatsapp-fab";
 import { ShopStatusBanner } from "@/components/shop/shop-status-banner";
 import { getPublicShopInfo } from "@/server/settings";
-import { SmoothScroll } from "@/components/shop/motion/smooth-scroll";
 import { FlyToCart } from "@/components/shop/motion/fly-to-cart";
 
 // Shop pages read live data (availability, opening hours) on every request.
@@ -29,7 +28,6 @@ export default async function ShopLayout({ children }: LayoutProps<"/">) {
       <WhatsAppFab number={shop.whatsappNumber} />
       <BottomNav />
       <FlyToCart />
-      <SmoothScroll />
     </>
   );
 }

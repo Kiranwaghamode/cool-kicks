@@ -38,7 +38,7 @@ export function itemOptions(i: { size: Size; sugarLevel: Level; iceLevel: Level 
 }
 
 /** WhatsApp message with the order summary. */
-export function orderWhatsappText(o: {
+export function orderWhatsappText(shopName: string, o: {
   orderNumber: string;
   fulfilment: Fulfilment;
   paymentMethod: PaymentMethod;
@@ -49,7 +49,7 @@ export function orderWhatsappText(o: {
     (i) => `• ${i.quantity} × ${i.productName} (${itemOptions(i)})${i.instructions ? ` – ${i.instructions}` : ""}`,
   );
   return [
-    `Hi Cool Kick! 🍹 I just placed order *${o.orderNumber}*.`,
+    `Hi ${shopName}! 🍹 I just placed order *${o.orderNumber}*.`,
     "",
     ...lines,
     "",

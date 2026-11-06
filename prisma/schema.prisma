@@ -273,14 +273,36 @@ model Ingredient {
   id                String              @id @default(cuid())
   name              String              @unique
   unit              Unit
+  /// Total physical stock = sum of batch quantityRemaining (including expired). Kept in sync with the batches.
   currentStock      Decimal             @default(0) @db.Decimal(12, 3)
   lowStockThreshold Decimal             @default(0) @db.Decimal(12, 3)
   /// Optional purchase cost per unit (paise), used for estimated margins
   costPerUnit       Int?
   usedIn            ProductIngredient[]
   movements         StockMovement[]
+  batches           IngredientBatch[]
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
+}
+
+/// A delivery/purchase of an ingredient with its own expiry. Orders use the earliest-expiring
+/// usable batch first; expired batches don't count as available stock.
+model IngredientBatch {
+  id                String          @id @default(cuid())
+  ingredientId      String
+  ingredient        Ingredient      @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantityReceived  Decimal         @db.Decimal(12, 3)
+  quantityRemaining Decimal         @db.Decimal(12, 3)
+  /// End of the expiry day (IST). Null = doesn't expire / stock from before expiry tracking.
+  expiresAt         DateTime?
+  note              String?
+  createdById       String?
+  createdBy         StaffUser?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  movements         StockMovement[]
+  receivedAt        DateTime        @default(now())
+
+  @@index([ingredientId, expiresAt])
+  @@index([expiresAt])
 }
 
 /// Recipe line: how much of an ingredient one drink uses.
@@ -296,20 +318,23 @@ model ProductIngredient {
 }
 
 model StockMovement {
-  id           String      @id @default(cuid())
+  id           String           @id @default(cuid())
   ingredientId String
-  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-  change       Decimal     @db.Decimal(12, 3) // positive = added, negative = removed
+  ingredient   Ingredient       @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  batchId      String?
+  batch        IngredientBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  change       Decimal          @db.Decimal(12, 3) // positive = added, negative = removed
   reason       StockReason
   note         String?
   orderId      String?
-  order        Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  order        Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
   staffId      String?
-  staff        StaffUser?  @relation(fields: [staffId], references: [id], onDelete: SetNull)
-  createdAt    DateTime    @default(now())
+  staff        StaffUser?       @relation(fields: [staffId], references: [id], onDelete: SetNull)
+  createdAt    DateTime         @default(now())
 
   @@index([ingredientId, createdAt])
   @@index([orderId])
+  @@index([batchId])
 }
 
 // ───────────────────────────── Orders ─────────────────────────────
@@ -524,18 +549,19 @@ model ContactMessage {
 // ───────────────────────────── Staff ─────────────────────────────
 
 model StaffUser {
-  id             String               @id @default(cuid())
-  name           String
-  email          String               @unique
-  passwordHash   String
-  role           Role                 @default(STAFF)
-  isActive       Boolean              @default(true)
-  lastLoginAt    DateTime?
-  statusChanges  OrderStatusHistory[]
-  stockMovements StockMovement[]
-  auditLogs      AuditLog[]
-  createdAt      DateTime             @default(now())
-  updatedAt      DateTime             @updatedAt
+  id                String               @id @default(cuid())
+  name              String
+  email             String               @unique
+  passwordHash      String
+  role              Role                 @default(STAFF)
+  isActive          Boolean              @default(true)
+  lastLoginAt       DateTime?
+  statusChanges     OrderStatusHistory[]
+  stockMovements    StockMovement[]
+  ingredientBatches IngredientBatch[]
+  auditLogs         AuditLog[]
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 }
 
 model Expense {

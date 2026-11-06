@@ -5,11 +5,15 @@ import { PortalNav } from "@/components/shop/business/portal-nav";
 import { BulkCartOwner } from "@/components/shop/business/bulk-cart-owner";
 import { requireBusiness } from "@/server/business-auth";
 import { BUSINESS_STATUS_LABELS, BUSINESS_TYPE_LABELS, type BusinessStatus } from "@/lib/types";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: { default: "Business account", template: "%s | Cool Kick Business" },
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: { default: "Business account", template: `%s | ${name} Business` },
+    robots: { index: false, follow: false },
+  };
+}
 
 const STATUS_TONE: Record<BusinessStatus, BadgeTone> = { PENDING: "warning", APPROVED: "success", REJECTED: "danger", SUSPENDED: "danger" };
 

@@ -5,6 +5,7 @@ import { addDays, formatDayLabel, istDateKey, startOfDayIST } from "@/lib/dates"
 import { NON_SALE_STATUSES } from "@/lib/order-status";
 import { can } from "@/lib/permissions";
 import { getOutstandingByBusiness } from "@/server/admin/wholesale-reports";
+import { summariseBatches } from "@/lib/ingredient-stock";
 
 const saleStatus = { notIn: NON_SALE_STATUSES };
 
@@ -32,7 +33,10 @@ export async function getDashboardData() {
       orderBy: { _sum: { quantity: "desc" } },
       take: 5,
     }),
-    db.ingredient.findMany({ orderBy: { name: "asc" } }),
+    db.ingredient.findMany({
+      orderBy: { name: "asc" },
+      include: { batches: { where: { quantityRemaining: { gt: 0 } }, select: { quantityRemaining: true, expiresAt: true } } },
+    }),
   ]);
 
   const byDay = new Map<string, { value: number; orders: number }>();
@@ -49,9 +53,13 @@ export async function getDashboardData() {
 
   const salesToday = (todayAgg._sum.total ?? 0) - (todayAgg._sum.taxTotal ?? 0);
   const saleOrdersToday = todayAgg._count._all;
-  const lowStock = ingredients
-    .filter((i) => Number(i.currentStock) <= Number(i.lowStockThreshold))
-    .map((i) => ({ id: i.id, name: i.name, unit: i.unit, stock: Number(i.currentStock), threshold: Number(i.lowStockThreshold) }));
+  // Stock that counts = batches not yet expired. Expired / expiring-soon batches are flagged separately.
+  const stockRows = ingredients.map((i) => {
+    const s = summariseBatches(i.batches.map((b) => ({ remaining: Number(b.quantityRemaining), expiresAt: b.expiresAt })));
+    return { id: i.id, name: i.name, unit: i.unit, stock: s.usable, threshold: Number(i.lowStockThreshold), expired: s.expired, expiringSoon: s.expiringSoon, nextExpiry: s.nextExpiry?.toISOString() ?? null };
+  });
+  const lowStock = stockRows.filter((i) => i.stock <= i.threshold);
+  const expiryAlerts = stockRows.filter((i) => i.expired > 0 || i.expiringSoon > 0);
 
   const wholesale = can(staff.role, "businesses") ? await getWholesaleSummary(monthAgo) : null;
 
@@ -67,6 +75,7 @@ export async function getDashboardData() {
     latest,
     bestSellers: bestRaw.map((b) => ({ name: b.productName, quantity: b._sum.quantity ?? 0, revenue: b._sum.lineTotal ?? 0 })),
     lowStock,
+    expiryAlerts,
   };
 }
 

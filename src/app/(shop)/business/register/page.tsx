@@ -3,11 +3,15 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { RegisterForm } from "./register-form";
 import { getBusiness } from "@/server/business-auth";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: "Register your business",
-  description: "Apply for a Cool Kick wholesale account for your shop or distribution business.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: "Register your business",
+    description: `Apply for a ${name} wholesale account for your shop or distribution business.`,
+  };
+}
 
 export default async function BusinessRegisterPage() {
   if (await getBusiness()) redirect("/business/account");

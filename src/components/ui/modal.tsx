@@ -6,15 +6,37 @@ import { AnimatePresence, m, useReducedMotion } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// Page scroll lock shared by every open overlay. A counter (not a saved style value) makes sure
+// the page always scrolls again once the last overlay closes, whatever order they close in.
+let lockCount = 0;
+let savedOverflow = "";
+function lockScroll() {
+  if (lockCount++ === 0) {
+    savedOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
+}
+function unlockScroll() {
+  lockCount = Math.max(0, lockCount - 1);
+  if (lockCount === 0) document.body.style.overflow = savedOverflow;
+}
+
 /** Locks page scroll, closes on Escape and moves focus into the panel while open. */
 function useOverlay(open: boolean, onClose: () => void, panel: React.RefObject<HTMLElement | null>) {
+  // Callers usually pass an inline `onClose`, which is a new function on every render (every
+  // keystroke). Keep it in a ref so the effect below runs only when the overlay opens/closes –
+  // otherwise it would re-run per keystroke and pull focus out of the input being typed in.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const previouslyFocused = document.activeElement as HTMLElement | null;
-    const { overflow } = document.body.style;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
       if (e.key === "Tab" && panel.current) {
         const items = panel.current.querySelectorAll<HTMLElement>(
           'a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex]:not([tabindex="-1"])',
@@ -32,14 +54,19 @@ function useOverlay(open: boolean, onClose: () => void, panel: React.RefObject<H
       }
     };
     document.addEventListener("keydown", onKey);
-    const t = setTimeout(() => panel.current?.focus(), 10);
+    // Move focus into the panel, unless something inside it (e.g. an autoFocus input) already has it.
+    const t = setTimeout(() => {
+      const el = panel.current;
+      if (!el || el.contains(document.activeElement)) return;
+      (el.querySelector<HTMLElement>("[autofocus]") ?? el).focus();
+    }, 10);
     return () => {
       clearTimeout(t);
-      document.body.style.overflow = overflow;
+      unlockScroll();
       document.removeEventListener("keydown", onKey);
-      previouslyFocused?.focus?.();
+      if (previouslyFocused?.isConnected) previouslyFocused.focus?.({ preventScroll: true });
     };
-  }, [open, onClose, panel]);
+  }, [open, panel]);
 }
 
 const noopSubscribe = () => () => {};

@@ -8,11 +8,15 @@ import { LinkButton } from "@/components/ui/button";
 import { getActiveCoupons, getMenuProducts } from "@/server/catalog";
 import { couponConditions, couponHeadline } from "@/lib/coupons";
 import { cn } from "@/lib/utils";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: "Offers",
-  description: "Current Cool Kick coupons, combos and deals on juices, mojitos and falooda.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: "Offers",
+    description: `Current ${name} coupons, combos and deals on juices, mojitos and falooda.`,
+  };
+}
 
 const TONES = ["from-brand to-mango", "from-melon to-mango", "from-ice-deep to-brand"];
 

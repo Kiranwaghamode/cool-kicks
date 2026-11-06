@@ -5,12 +5,16 @@ import { LinkButton } from "@/components/ui/button";
 import { Eyebrow } from "@/components/ui/badge";
 import { SectionHeading } from "@/components/shop/section-heading";
 import { getBusiness } from "@/server/business-auth";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: "Wholesale for retailers & distributors",
-  description:
-    "Stock Cool Kick juices in your shop. Wholesale prices, bulk packs, credit terms and GST invoices for approved retailers and distributors.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: "Wholesale for retailers & distributors",
+    description:
+      `Stock ${name} juices in your shop. Wholesale prices, bulk packs, credit terms and GST invoices for approved retailers and distributors.`,
+  };
+}
 
 const BENEFITS = [
   { icon: BadgePercent, title: "Wholesale prices", body: "Trade prices, with extra discounts as your order grows." },
@@ -29,12 +33,13 @@ const STEPS = [
 
 export default async function BusinessLandingPage() {
   if (await getBusiness()) redirect("/business/account");
+  const shopName = await getShopName();
   return (
     <>
       <section className="bg-gradient-to-b from-cream to-cream-50">
         <div className="container-page py-12 md:py-20">
           <div className="max-w-2xl">
-            <Eyebrow>Cool Kick for business</Eyebrow>
+            <Eyebrow>{shopName} for business</Eyebrow>
             <h1 className="mt-3 text-[2rem] leading-tight font-extrabold md:text-display-sm">
               Fresh juices for your shelves, at wholesale prices.
             </h1>

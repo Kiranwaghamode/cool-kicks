@@ -3,13 +3,18 @@ import { FAQ } from "@/content/faq";
 import { FaqAccordion } from "@/components/shop/faq-accordion";
 import { SectionHeading } from "@/components/shop/section-heading";
 import { LinkButton } from "@/components/ui/button";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: "FAQ",
-  description: "Answers about ordering, delivery areas, payment and our drinks at Cool Kick.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: "FAQ",
+    description: `Answers about ordering, delivery areas, payment and our drinks at ${name}.`,
+  };
+}
 
-export default function FaqPage() {
+export default async function FaqPage() {
+  const shopName = await getShopName();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -20,7 +25,7 @@ export default function FaqPage() {
   return (
     <div className="container-page py-10 md:py-16">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <SectionHeading as="h1" eyebrow="Help" title="Frequently Asked Questions" subtitle="Everything you need to know about ordering from Cool Kick." />
+      <SectionHeading as="h1" eyebrow="Help" title="Frequently Asked Questions" subtitle={`Everything you need to know about ordering from ${shopName}.`} />
       <div className="mx-auto max-w-3xl space-y-10">
         {FAQ.map((g) => (
           <section key={g.title} aria-labelledby={`faq-${g.title}`}>

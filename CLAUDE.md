@@ -10,7 +10,7 @@ Online ordering site + admin dashboard for **Cool Kick**, an ice juice shop, wit
 - Tailwind CSS v4 (tokens in `src/app/globals.css` via `@theme`)
 - PostgreSQL 16 (Docker, port **5433**) + Prisma 7 (`prisma-client` generator → `src/generated/prisma`, driver adapter `@prisma/adapter-pg`, config in `prisma.config.ts`). Import the client from `@/lib/db`.
 - Auth.js v5 (credentials, JWT sessions, bcrypt), Zod 4, React Hook Form, Zustand (cart, persisted to localStorage)
-- Motion + GSAP ScrollTrigger + Lenis for animations (customer site only)
+- Motion for animations (customer site only). Native browser scrolling – no smooth-scroll library or scroll-scrubbed parallax (they made scrolling stick; removed 2026-11).
 - Vitest (`tests/unit`) and Playwright (`tests/e2e`)
 - Design source: Google Stitch screens **Mobile-Home** and **Desktop-Home** only. Every other page is derived from that design system.
 
@@ -96,6 +96,9 @@ plus `CANCELLED` (from any status before DELIVERED) and `REJECTED` (from PLACED 
 - Zod 4: `.omit()`/`.pick()` throw on schemas with refinements – keep a plain base schema (e.g. `wholesaleCheckoutBase`) and refine a copy.
 - Files in a `"use server"` module may only export async functions (and types).
 - Pure helpers used by unit tests live in `src/lib` (e.g. `credit.ts`, `gst.ts`); `src/server/*` imports `server-only` and can't be loaded by Vitest.
+- **Shop name** comes from Settings: server code uses `getShopName()` (`src/server/brand.ts`), client components `useShopName()` (provider in the root layout). Never hard-code "Cool Kick" in UI, titles or messages (`DEFAULT_SHOP_NAME` is only a DB-down fallback).
+- **Ingredient stock is batched** (`IngredientBatch`, each with its own expiry; `Ingredient.currentStock` = sum of batch remaining, kept in sync). Change stock only through `src/server/ingredient-stock.ts` (`consumeIngredient`, `reduceIngredient`, `addIngredientBatch`, `returnOrderIngredients`). Orders use the earliest-expiring usable batch; expired stock never counts. Drinks whose recipe needs an ingredient with no usable stock are unavailable on the shop and at checkout (`getStockBlockedProductIds`). Expiry warning window: `EXPIRY_WARNING_DAYS` in `src/lib/ingredient-stock.ts`.
+- Overlays (`Modal`/`Drawer`) keep `onClose` in a ref – don't add it back to the open/close effect's deps (it re-ran per keystroke and stole focus from inputs). Scroll lock is ref-counted for stacked overlays.
 - Business verification documents are stored as bytes in `BusinessDocument` and streamed by auth-checked routes (`/admin/documents/[id]`, `/business/documents/[id]`) – never put them in `/uploads`.
 
 ## Commands

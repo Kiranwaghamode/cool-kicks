@@ -5,11 +5,15 @@ import { LinkButton } from "@/components/ui/button";
 import { SectionHeading } from "@/components/shop/section-heading";
 import { db } from "@/lib/db";
 import { getReviewStats } from "@/server/catalog";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: "About us",
-  description: "The story of Cool Kick – fresh fruit, crushed ice and honest juices made to order.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: "About us",
+    description: `The story of ${name} – fresh fruit, crushed ice and honest juices made to order.`,
+  };
+}
 
 const VALUES = [
   { icon: Leaf, title: "Fresh, always", body: "Fruit bought every morning and pressed only when you order." },
@@ -19,6 +23,7 @@ const VALUES = [
 ];
 
 export default async function AboutPage() {
+  const shopName = await getShopName();
   const [productCount, stats] = await Promise.all([
     db.product.count({ where: { isActive: true } }),
     getReviewStats(),
@@ -35,7 +40,7 @@ export default async function AboutPage() {
             </h1>
             <div className="mt-5 space-y-4 text-ink-soft md:text-lg">
               <p>
-                Cool Kick started with a simple idea: the best cure for a sweltering Indian summer is a glass of
+                {shopName} started with a simple idea: the best cure for a sweltering Indian summer is a glass of
                 freshly pressed juice, poured over a mountain of crushed ice.
               </p>
               <p>

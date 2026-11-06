@@ -23,7 +23,7 @@ export function PolicyPage({
           className="mb-6 flex items-start gap-3 rounded-2xl border border-mango/50 bg-mango-soft px-4 py-3 text-sm font-medium text-warning"
         >
           <FileWarning className="mt-0.5 size-5 shrink-0" aria-hidden />
-          DRAFT – this text is a starting point written for Cool Kick. The shop owner should review it (ideally with a
+          DRAFT – this text is a starting point written for this shop. The shop owner should review it (ideally with a
           legal advisor) before the website goes live.
         </p>
         <header className="mb-8">

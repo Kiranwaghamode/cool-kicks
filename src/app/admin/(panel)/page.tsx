@@ -5,19 +5,20 @@ import { DailySalesChart } from "@/components/admin/charts";
 import { LinkButton } from "@/components/ui/button";
 import { getDashboardData } from "@/server/admin/dashboard";
 import { formatPaise } from "@/lib/money";
-import { formatDateTime } from "@/lib/order-format";
+import { formatDate, formatDateTime } from "@/lib/order-format";
 import { getStaff } from "@/server/auth-guard";
 import { can } from "@/lib/permissions";
+import { getShopName } from "@/server/brand";
 
 export const metadata = { title: "Dashboard" };
 
 export default async function DashboardPage() {
-  const [d, staff] = await Promise.all([getDashboardData(), getStaff()]);
+  const [d, staff, shopName] = await Promise.all([getDashboardData(), getStaff(), getShopName()]);
   const canInventory = can(staff?.role, "inventory");
 
   return (
     <>
-      <PageHeader title={`Hello, ${staff?.name.split(" ")[0] ?? "there"} 👋`} description="Here's how Cool Kick is doing today. Figures are revenue, not profit." />
+      <PageHeader title={`Hello, ${staff?.name.split(" ")[0] ?? "there"} 👋`} description={`Here's how ${shopName} is doing today. Figures are revenue, not profit.`} />
 
       {d.pending > 0 && (
         <Link
@@ -152,11 +153,25 @@ export default async function DashboardPage() {
         <Panel
           title={
             <span className="flex items-center gap-2">
-              <AlertTriangle className="size-4 text-warning" aria-hidden /> Low stock
+              <AlertTriangle className="size-4 text-warning" aria-hidden /> Stock &amp; expiry
             </span>
           }
           action={canInventory ? <LinkButton href="/admin/inventory" variant="outline" size="sm">Inventory</LinkButton> : undefined}
         >
+          {d.expiryAlerts.length > 0 && (
+            <ul className="mb-2 space-y-2 text-sm" aria-label="Expiry alerts">
+              {d.expiryAlerts.map((i) => (
+                <li key={`exp-${i.id}`} className="flex items-center justify-between gap-3 rounded-xl bg-danger-soft/50 px-3 py-2">
+                  <span className="font-semibold">{i.name}</span>
+                  <span className={i.expired > 0 ? "font-bold text-danger" : "font-semibold text-warning"}>
+                    {i.expired > 0
+                      ? `${i.expired} ${i.unit.toLowerCase()} expired`
+                      : `${i.expiringSoon} ${i.unit.toLowerCase()} expires ${i.nextExpiry ? formatDate(i.nextExpiry) : "soon"}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           {d.lowStock.length ? (
             <ul className="space-y-2 text-sm">
               {d.lowStock.map((i) => (
@@ -168,8 +183,8 @@ export default async function DashboardPage() {
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="text-sm text-ink-muted">All ingredients are well stocked.</p>
+          ) : d.expiryAlerts.length ? null : (
+            <p className="text-sm text-ink-muted">All ingredients are well stocked and in date.</p>
           )}
         </Panel>
       </div>

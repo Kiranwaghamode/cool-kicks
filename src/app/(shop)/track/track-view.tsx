@@ -20,6 +20,7 @@ import { formatPaise } from "@/lib/money";
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/types";
 import { whatsappLink } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
+import { useShopName } from "@/components/brand/shop-name";
 
 const REFRESH_MS = 30_000;
 
@@ -160,6 +161,7 @@ function OrderDetails({
   onRefresh: () => void;
 }) {
   const router = useRouter();
+  const shopName = useShopName();
   const addToCart = useCart((s) => s.add);
   const [reordering, startReorder] = useTransition();
   const active = ACTIVE_STATUSES.includes(order.status);
@@ -239,7 +241,7 @@ function OrderDetails({
 
         <div className="grid gap-3">
           <a
-            href={whatsappLink(whatsappNumber, `Hi Cool Kick! I need help with my order ${order.orderNumber}.`)}
+            href={whatsappLink(whatsappNumber, `Hi ${shopName}! I need help with my order ${order.orderNumber}.`)}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonVariants({ size: "lg", className: "bg-whatsapp hover:bg-whatsapp-dark" })}

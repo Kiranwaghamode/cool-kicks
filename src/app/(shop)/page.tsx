@@ -27,22 +27,25 @@ import {
 import { getPublicShopInfo } from "@/server/settings";
 import { couponConditions, couponHeadline } from "@/lib/coupons";
 import { WEEKDAYS, WEEKDAY_LABELS } from "@/lib/shop-hours";
-import { HeroMotion } from "@/components/shop/motion/hero-motion";
 import { Reveal, StaggerGrid } from "@/components/shop/motion/reveal";
 import { Cherry, Citrus, Leaf } from "lucide-react";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: { absolute: "Cool Kick – Fresh & Chilled Juices | Order Online" },
-  description:
-    "There's a chilled juice for every mood. Fresh fruit juices, ice juices, mojitos, milkshakes and falooda made to order – pickup or home delivery.",
-  openGraph: {
-    title: "Cool Kick – Fresh & Chilled Juices",
-    description: "Fresh fruit, crushed ice and zero preservatives – made to order.",
-    images: [{ url: "/images/design/hero-bottles.webp", width: 1024, height: 1024 }],
-    type: "website",
-    locale: "en_IN",
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: { absolute: `${name} – Fresh & Chilled Juices | Order Online` },
+    description:
+      "There's a chilled juice for every mood. Fresh fruit juices, ice juices, mojitos, milkshakes and falooda made to order – pickup or home delivery.",
+    openGraph: {
+      title: `${name} – Fresh & Chilled Juices`,
+      description: "Fresh fruit, crushed ice and zero preservatives – made to order.",
+      images: [{ url: "/images/design/hero-bottles.webp", width: 1024, height: 1024 }],
+      type: "website",
+      locale: "en_IN",
+    },
+  };
+}
 
 const WHY = [
   {
@@ -108,11 +111,10 @@ export default async function HomePage() {
 
       {/* ───────── Hero ───────── */}
       <section data-hero className="relative overflow-hidden bg-gradient-to-b from-cream to-cream-50">
-        <HeroMotion />
         <div aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
-          <Citrus data-parallax="18" className="absolute top-24 left-[46%] size-10 text-mango/70" />
-          <Leaf data-parallax="28" className="absolute bottom-24 left-[42%] size-8 text-brand/60" />
-          <Cherry data-parallax="22" className="absolute top-16 right-6 size-9 text-melon/60" />
+          <Citrus className="absolute top-24 left-[46%] size-10 text-mango/70" />
+          <Leaf className="absolute bottom-24 left-[42%] size-8 text-brand/60" />
+          <Cherry className="absolute top-16 right-6 size-9 text-melon/60" />
         </div>
         <div className="container-page grid items-center gap-8 py-8 md:py-14 lg:grid-cols-2 lg:gap-12 lg:py-20">
           <div className="hero-rise text-center lg:text-left" data-hero-copy>
@@ -267,7 +269,7 @@ export default async function HomePage() {
       <section className="bg-cream/60 py-14 md:py-20" aria-labelledby="why-heading">
         <div className="container-page">
           <Reveal className="rounded-[28px] bg-surface p-6 shadow-warm-soft md:bg-transparent md:p-0 md:shadow-none">
-            <SectionHeading eyebrow="Quality promise" title="The Cool Kick Standard" subtitle="We treat every juice as fresh, honest nourishment." />
+            <SectionHeading eyebrow="Quality promise" title={`The ${shop.shopName} Standard`} subtitle="We treat every juice as fresh, honest nourishment." />
             <span id="why-heading" className="sr-only">
               Why choose us
             </span>

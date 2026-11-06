@@ -1,5 +1,6 @@
 import "server-only";
 import { Prisma } from "@/generated/prisma/client";
+import { returnOrderIngredients, consumeIngredient } from "@/server/ingredient-stock";
 
 type Tx = Prisma.TransactionClient;
 
@@ -19,28 +20,23 @@ async function usageForOrder(tx: Tx, orderId: string) {
   return usage;
 }
 
-/** Deduct stock when an order is confirmed. Runs inside the status-change transaction. Idempotent per order. */
+/**
+ * Deduct stock when an order is confirmed (earliest-expiring usable batch first, never expired
+ * stock). Runs inside the status-change transaction. Idempotent per order.
+ */
 export async function deductStockForOrder(tx: Tx, orderId: string, staffId: string | null, orderNumber: string) {
   const claimed = await tx.order.updateMany({ where: { id: orderId, stockDeducted: false }, data: { stockDeducted: true } });
   if (claimed.count === 0) return;
   const usage = await usageForOrder(tx, orderId);
-  for (const [ingredientId, qty] of usage) {
-    await tx.ingredient.update({ where: { id: ingredientId }, data: { currentStock: { decrement: qty } } });
-    await tx.stockMovement.create({
-      data: { ingredientId, change: qty.neg(), reason: "USAGE", note: `Order ${orderNumber}`, orderId, staffId },
-    });
+  // Sorted ids = consistent lock order between concurrent confirmations.
+  for (const ingredientId of [...usage.keys()].sort()) {
+    await consumeIngredient(tx, ingredientId, usage.get(ingredientId)!, { note: `Order ${orderNumber}`, orderId, staffId });
   }
 }
 
-/** Put stock back when a confirmed order is cancelled. */
+/** Put stock back into the same batches when a confirmed order is cancelled. */
 export async function restoreStockForOrder(tx: Tx, orderId: string, staffId: string | null, orderNumber: string) {
   const claimed = await tx.order.updateMany({ where: { id: orderId, stockDeducted: true }, data: { stockDeducted: false } });
   if (claimed.count === 0) return;
-  const usage = await usageForOrder(tx, orderId);
-  for (const [ingredientId, qty] of usage) {
-    await tx.ingredient.update({ where: { id: ingredientId }, data: { currentStock: { increment: qty } } });
-    await tx.stockMovement.create({
-      data: { ingredientId, change: qty, reason: "ADJUSTMENT", note: `Restored – order ${orderNumber} cancelled`, orderId, staffId },
-    });
-  }
+  await returnOrderIngredients(tx, orderId, staffId, `Restored – order ${orderNumber} cancelled`);
 }

@@ -46,6 +46,7 @@ import { formatDate, formatDateTime, itemOptions } from "@/lib/order-format";
 import { formatPaise } from "@/lib/money";
 import { PAYMENT_METHOD_LABELS, type Level, type Size } from "@/lib/types";
 import { whatsappLink } from "@/lib/whatsapp";
+import { useShopName } from "@/components/brand/shop-name";
 
 const WHOLESALE_ACTION_LABELS: Partial<Record<OrderStatus, string>> = {
   CONFIRMED: "Confirm & reserve stock",
@@ -64,16 +65,16 @@ const ACTION_LABELS: Partial<Record<OrderStatus, string>> = {
   DELIVERED: "Mark delivered",
 };
 
-function customerMessage(o: AdminOrder) {
+function customerMessage(o: AdminOrder, shopName: string) {
   const name = o.customerName.split(" ")[0];
   const map: Record<OrderStatus, string> = {
-    PLACED: `Hi ${name}! We've received your Cool Kick order ${o.orderNumber}. We'll confirm it shortly.`,
-    CONFIRMED: `Hi ${name}! Your Cool Kick order ${o.orderNumber} is confirmed 🍹`,
+    PLACED: `Hi ${name}! We've received your ${shopName} order ${o.orderNumber}. We'll confirm it shortly.`,
+    CONFIRMED: `Hi ${name}! Your ${shopName} order ${o.orderNumber} is confirmed 🍹`,
     PREPARING: `Hi ${name}! We're preparing your order ${o.orderNumber} right now.`,
     PACKED: `Hi ${name}! Your order ${o.orderNumber} is packed and will be dispatched soon.`,
     READY_FOR_PICKUP: `Hi ${name}! Your order ${o.orderNumber} is ready for pickup at the counter. Total ${formatPaise(o.total)}.`,
     OUT_FOR_DELIVERY: `Hi ${name}! Your order ${o.orderNumber} is out for delivery. Please keep ${formatPaise(o.total)} ready (cash/UPI).`,
-    DELIVERED: `Hi ${name}! Hope you enjoyed your Cool Kick order ${o.orderNumber}. Thank you! 💚`,
+    DELIVERED: `Hi ${name}! Hope you enjoyed your ${shopName} order ${o.orderNumber}. Thank you! 💚`,
     CANCELLED: `Hi ${name}, your order ${o.orderNumber} has been cancelled${o.cancelReason ? `: ${o.cancelReason}` : ""}. Sorry for the trouble.`,
     REJECTED: `Hi ${name}, sorry – we couldn't accept order ${o.orderNumber}${o.cancelReason ? `: ${o.cancelReason}` : ""}.`,
   };
@@ -94,6 +95,7 @@ export function OrderDrawer({
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [reasonFor, setReasonFor] = useState<"REJECTED" | "CANCELLED" | "REFUND" | null>(null);
+  const shopName = useShopName();
   const [reason, setReason] = useState("");
 
   const load = useCallback(async (num: string) => {
@@ -246,7 +248,7 @@ export function OrderDrawer({
                 <Phone className="size-4" aria-hidden /> {order.customerPhone}
               </a>
               <a
-                href={whatsappLink(`91${order.customerPhone}`, customerMessage(order))}
+                href={whatsappLink(`91${order.customerPhone}`, customerMessage(order, shopName))}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={buttonVariants({

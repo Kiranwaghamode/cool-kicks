@@ -6,6 +6,7 @@ import { indianMobile, orderNumber as orderNumberSchema, trackSchema } from "@/l
 import { findOrderForTracking, type CustomerOrder } from "@/server/orders";
 import { clientIp, rateLimit } from "@/server/rate-limit";
 import { lineKey } from "@/lib/cart-line";
+import { getStockBlockedProductIds } from "@/server/ingredient-stock";
 import type { Level, Size } from "@/lib/types";
 
 export type TrackResult = { ok: true; order: CustomerOrder } | { ok: false; error: string };
@@ -87,12 +88,13 @@ export async function getReorderItems(input: { orderNumber: string; phone: strin
   });
   if (!order) return { ok: false, error: "Order not found." };
 
+  const blocked = await getStockBlockedProductIds();
   const lines: Extract<ReorderResult, { ok: true }>["lines"] = [];
   const skipped: string[] = [];
   for (const i of order.items) {
     const p = i.product;
     const v = p.variants.find((x) => x.size === i.size);
-    if (!p.isActive || !p.isAvailable || !p.category.isActive || !v || !v.isAvailable) {
+    if (!p.isActive || !p.isAvailable || blocked.has(p.id) || !p.category.isActive || !v || !v.isAvailable) {
       skipped.push(i.productName);
       continue;
     }

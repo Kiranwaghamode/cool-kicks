@@ -14,6 +14,7 @@ import { GST_STATES } from "@/lib/gst";
 import { formatDate } from "@/lib/order-format";
 import { DOCUMENT_STATUS_LABELS, DOCUMENT_TYPE_LABELS, DOCUMENT_TYPES, type DocumentStatus, type DocumentType } from "@/lib/types";
 import { changeBusinessPassword, removeBusinessAddress, saveBusinessAddress, uploadBusinessDocument } from "@/server/actions/business/account";
+import { useShopName } from "@/components/brand/shop-name";
 
 export type PortalAddress = {
   id: string;
@@ -42,6 +43,7 @@ function codeForState(name: string, fallback: string) {
 
 export function ProfileView({ addresses, documents, defaultStateCode }: { addresses: PortalAddress[]; documents: Doc[]; defaultStateCode: string }) {
   const router = useRouter();
+  const shopName = useShopName();
   const [pending, start] = useTransition();
   const [draft, setDraft] = useState<AddressDraft | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -161,7 +163,7 @@ export function ProfileView({ addresses, documents, defaultStateCode }: { addres
       {/* Documents */}
       <section className="rounded-card bg-surface p-5 shadow-warm-soft md:p-6">
         <h2 className="font-bold">Verification documents</h2>
-        <p className="mt-1 text-sm text-ink-soft">Only Cool Kick staff can see these. PDF, JPG or PNG up to 3 MB.</p>
+        <p className="mt-1 text-sm text-ink-soft">Only {shopName} staff can see these. PDF, JPG or PNG up to 3 MB.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-[220px_1fr_auto] sm:items-end">
           <Field label="Document type" htmlFor="doc-type">
             <Select id="doc-type" value={docType} onChange={(e) => setDocType(e.target.value as DocumentType)}>

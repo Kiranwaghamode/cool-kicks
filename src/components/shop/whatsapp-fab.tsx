@@ -1,19 +1,21 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { DEFAULT_WHATSAPP_MESSAGE, whatsappLink } from "@/lib/whatsapp";
+import { defaultWhatsappMessage, whatsappLink } from "@/lib/whatsapp";
 import { WhatsAppIcon } from "@/components/shop/icons";
 import { cn } from "@/lib/utils";
+import { useShopName } from "@/components/brand/shop-name";
 
 /** Pages with their own sticky bottom action bar – hide the FAB there on phones. */
 const STICKY_BAR_PAGES = ["/product/", "/cart", "/checkout"];
 
 export function WhatsAppFab({ number }: { number: string }) {
   const pathname = usePathname();
+  const shopName = useShopName();
   const hideOnMobile = STICKY_BAR_PAGES.some((p) => pathname.startsWith(p));
   return (
     <a
-      href={whatsappLink(number, DEFAULT_WHATSAPP_MESSAGE)}
+      href={whatsappLink(number, defaultWhatsappMessage(shopName))}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"

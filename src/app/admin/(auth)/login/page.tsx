@@ -3,11 +3,13 @@ import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
 import { Logo } from "@/components/ui/logo";
 import { getStaff } from "@/server/auth-guard";
+import { getShopName } from "@/server/brand";
 
 export const metadata: Metadata = { title: "Staff login", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {
+  const shopName = await getShopName();
   if (await getStaff()) redirect("/admin");
   const sp = await searchParams;
   const next = typeof sp.callbackUrl === "string" ? new URL(sp.callbackUrl, "http://x").pathname : "/admin";
@@ -22,7 +24,7 @@ export default async function AdminLoginPage({ searchParams }: PageProps<"/admin
           <p className="mt-1 text-sm text-ink-soft">Sign in to manage orders, menu and the shop.</p>
           <LoginForm next={next} />
         </div>
-        <p className="mt-6 text-center text-xs text-ink-muted">Authorised Cool Kick staff only. All logins are recorded.</p>
+        <p className="mt-6 text-center text-xs text-ink-muted">Authorised {shopName} staff only. All logins are recorded.</p>
       </div>
     </main>
   );

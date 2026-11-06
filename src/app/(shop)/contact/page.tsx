@@ -8,13 +8,17 @@ import { ContactForm } from "./contact-form";
 import { getPublicShopInfo } from "@/server/settings";
 import { FAQ } from "@/content/faq";
 import { WEEKDAYS, WEEKDAY_LABELS, describeDay, shopClock } from "@/lib/shop-hours";
-import { DEFAULT_WHATSAPP_MESSAGE, formatPhone, telLink, whatsappLink } from "@/lib/whatsapp";
+import { defaultWhatsappMessage, formatPhone, telLink, whatsappLink } from "@/lib/whatsapp";
 import { cn } from "@/lib/utils";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = {
-  title: "Contact us",
-  description: "Call, WhatsApp or visit Cool Kick. Opening hours, location and contact form.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return {
+    title: "Contact us",
+    description: `Call, WhatsApp or visit ${name}. Opening hours, location and contact form.`,
+  };
+}
 
 export default async function ContactPage() {
   const shop = await getPublicShopInfo();
@@ -26,7 +30,7 @@ export default async function ContactPage() {
       icon: WhatsAppIcon,
       title: "WhatsApp",
       value: "Chat with us",
-      href: whatsappLink(shop.whatsappNumber, DEFAULT_WHATSAPP_MESSAGE),
+      href: whatsappLink(shop.whatsappNumber, defaultWhatsappMessage(shop.shopName)),
       tone: "bg-brand-soft text-brand-deep",
       external: true,
     },
@@ -35,7 +39,7 @@ export default async function ContactPage() {
 
   return (
     <div className="container-page py-10 md:py-16">
-      <SectionHeading as="h1" eyebrow="Say hello" title="Contact Cool Kick" subtitle="Questions, bulk orders or feedback – we'd love to hear from you." />
+      <SectionHeading as="h1" eyebrow="Say hello" title={`Contact ${shop.shopName}`} subtitle="Questions, bulk orders or feedback – we'd love to hear from you." />
 
       <ul className="grid gap-4 sm:grid-cols-3">
         {cards.map(({ icon: Icon, title, value, href, tone, ...rest }) => (

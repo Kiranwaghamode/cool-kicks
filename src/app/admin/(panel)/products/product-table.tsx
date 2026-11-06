@@ -23,6 +23,8 @@ type Row = {
   categoryId: string;
   categoryName: string;
   isAvailable: boolean;
+  /** An ingredient in the recipe has no usable stock – the shop shows it as sold out. */
+  noStock: boolean;
   isActive: boolean;
   minPrice: number;
   maxPrice: number;
@@ -133,7 +135,14 @@ export function ProductTable({ products, categories }: { products: Row[]; catego
                   </td>
                   <td className={td}>
                     {r.isActive ? (
-                      <Switch checked={r.isAvailable} onChange={(v) => toggle(r, v)} label={`${r.name} available`} />
+                      <div className="flex flex-col items-start gap-1">
+                        <Switch checked={r.isAvailable} onChange={(v) => toggle(r, v)} label={`${r.name} available`} />
+                        {r.isAvailable && r.noStock && (
+                          <Badge tone="danger" title="An ingredient is used up or expired – shown as sold out until you add stock in Inventory.">
+                            No ingredient stock
+                          </Badge>
+                        )}
+                      </div>
                     ) : (
                       <Badge tone="neutral">Removed</Badge>
                     )}

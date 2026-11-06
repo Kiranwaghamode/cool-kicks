@@ -110,7 +110,7 @@ export default async function OrderConfirmedPage({ params }: PageProps<"/order/[
             <MapPinned className="size-5" aria-hidden /> Track order
           </LinkButton>
           <a
-            href={whatsappLink(settings.whatsappNumber, orderWhatsappText(order))}
+            href={whatsappLink(settings.whatsappNumber, orderWhatsappText(settings.shopName, order))}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonVariants({ size: "lg", className: "bg-whatsapp hover:bg-whatsapp-dark" })}

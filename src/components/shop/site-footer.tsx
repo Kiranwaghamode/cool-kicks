@@ -38,6 +38,7 @@ export function SiteFooter({
   shop,
 }: {
   shop: {
+    shopName: string;
     phone: string;
     whatsappNumber: string;
     email: string | null;
@@ -114,7 +115,7 @@ export function SiteFooter({
       </div>
       <div className="border-t border-line">
         <div className="container-page flex flex-col gap-2 py-5 text-xs text-ink-soft sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Cool Kick Juice Bar. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {shop.shopName}. All rights reserved.</p>
           <p>Made fresh, served chilled.</p>
         </div>
       </div>

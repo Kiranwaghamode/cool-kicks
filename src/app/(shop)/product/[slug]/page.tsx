@@ -11,6 +11,7 @@ import { ReviewCard } from "@/components/shop/review-card";
 import { getProductBySlug, getRelatedProducts } from "@/server/catalog";
 import { formatPaise } from "@/lib/money";
 import { TAG_LABELS } from "@/lib/types";
+import { getShopName } from "@/server/brand";
 
 export async function generateMetadata({ params }: PageProps<"/product/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -23,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/product/[slug]">)
     description,
     alternates: { canonical: `/product/${p.slug}` },
     openGraph: {
-      title: `${p.name} | Cool Kick`,
+      title: `${p.name} | ${await getShopName()}`,
       description,
       images: p.image ? [{ url: p.image, width: 800, height: 800, alt: p.name }] : undefined,
     },

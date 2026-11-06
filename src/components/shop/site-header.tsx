@@ -105,7 +105,7 @@ export function SiteHeader() {
   const [searchOpen, setSearchOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-cream-50/90 shadow-warm backdrop-blur-xl">
+    <header className="sticky top-0 z-50 bg-cream-50/95 shadow-warm backdrop-blur-md">
       <div className="container-page flex h-16 items-center justify-between gap-4 md:h-20">
         {/* Mobile: hamburger */}
         <button

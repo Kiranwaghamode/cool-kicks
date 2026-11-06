@@ -8,6 +8,7 @@ import type { cartInputSchema } from "@/lib/validation";
 import type { z } from "zod";
 import type { Fulfilment, Level, Size } from "@/lib/types";
 import { lineKey } from "@/lib/cart-line";
+import { getStockBlockedProductIdsTx } from "@/server/ingredient-stock";
 
 type Tx = Prisma.TransactionClient | typeof db;
 type ParsedCart = z.output<typeof cartInputSchema>;
@@ -100,6 +101,8 @@ export async function priceCart(input: ParsedCart, tx: Tx = db): Promise<PricedC
     include: { variants: true, category: { select: { isActive: true } } },
   });
   const byId = new Map(products.map((p) => [p.id, p]));
+  // Drinks whose recipe needs an ingredient with no usable stock (used up / expired) can't be ordered.
+  const blocked = await getStockBlockedProductIdsTx(tx);
 
   // Merge duplicate lines (same options) defensively.
   const merged = new Map<string, ParsedCart["lines"][number]>();
@@ -116,7 +119,7 @@ export async function priceCart(input: ParsedCart, tx: Tx = db): Promise<PricedC
   for (const l of merged.values()) {
     const p = byId.get(l.productId);
     const v = p?.variants.find((x) => x.size === l.size);
-    const available = !!p && p.isActive && p.isAvailable && p.category.isActive && !!v && v.isAvailable;
+    const available = !!p && p.isActive && p.isAvailable && !blocked.has(p.id) && p.category.isActive && !!v && v.isAvailable;
     const unitPrice = v?.price ?? 0;
     const priceChanged = available && l.unitPrice !== undefined && l.unitPrice !== unitPrice;
     if (!p) problems.push({ key: l.key, message: "An item in your cart is no longer on the menu." });

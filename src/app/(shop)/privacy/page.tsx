@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import { PolicyPage } from "@/components/shop/policy-page";
-import { POLICY_LAST_UPDATED, PRIVACY_SECTIONS } from "@/content/policies";
+import { POLICY_LAST_UPDATED, privacySections } from "@/content/policies";
+import { getShopName } from "@/server/brand";
 
-export const metadata: Metadata = { title: "Privacy policy", description: "How Cool Kick collects, uses and protects your information." };
+export async function generateMetadata(): Promise<Metadata> {
+  const name = await getShopName();
+  return { title: "Privacy policy", description: `How ${name} collects, uses and protects your information.` };
+}
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const shopName = await getShopName();
   return (
     <PolicyPage
       title="Privacy Policy"
       lastUpdated={POLICY_LAST_UPDATED}
-      intro={<p>We respect your privacy. This page explains what information we collect when you order from Cool Kick and how we look after it.</p>}
-      sections={PRIVACY_SECTIONS}
+      intro={<p>We respect your privacy. This page explains what information we collect when you order from {shopName} and how we look after it.</p>}
+      sections={privacySections(shopName)}
     />
   );
 }

@@ -61,6 +61,10 @@ async function main() {
         unit: ing.unit,
         currentStock: ing.stock,
         lowStockThreshold: ing.low,
+        // Seeded stock is one batch without an expiry date; real purchases get their own expiry.
+        ...(ing.stock > 0
+          ? { batches: { create: { quantityReceived: ing.stock, quantityRemaining: ing.stock, note: "Opening stock (sample data)" } } }
+          : {}),
       },
     });
     ingredientIds.set(ing.name, row.id);

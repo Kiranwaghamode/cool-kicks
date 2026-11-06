@@ -4,7 +4,7 @@ import { WhatsAppIcon } from "@/components/shop/icons";
 import { OpenPill } from "@/components/shop/shop-status-banner";
 import { MapEmbed } from "@/components/shop/map-embed";
 import { summariseHours, type OpeningHours, type ShopStatus } from "@/lib/shop-hours";
-import { telLink, whatsappLink, DEFAULT_WHATSAPP_MESSAGE } from "@/lib/whatsapp";
+import { telLink, whatsappLink, defaultWhatsappMessage } from "@/lib/whatsapp";
 
 export function LocationCard({
   shop,
@@ -47,7 +47,7 @@ export function LocationCard({
             <Phone className="size-4" aria-hidden /> Call Us
           </a>
           <a
-            href={whatsappLink(shop.whatsappNumber, DEFAULT_WHATSAPP_MESSAGE)}
+            href={whatsappLink(shop.whatsappNumber, defaultWhatsappMessage(shop.shopName))}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonVariants({ className: "sm:flex-1" })}

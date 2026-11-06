@@ -13,12 +13,14 @@ import { formatPaise } from "@/lib/money";
 import { formatDate, formatDateTime } from "@/lib/order-format";
 import { QUOTATION_STATUS_LABELS, SIZE_LABELS } from "@/lib/types";
 import { QuoteResponse } from "./quote-response";
+import { getShopName } from "@/server/brand";
 
 export const metadata = { title: "Quotation" };
 
 export default async function BusinessQuotationPage({ params }: PageProps<"/business/quotations/[number]">) {
   const business = await requireBusiness({ approved: true });
   const { number } = await params;
+  const shopName = await getShopName();
   const q = await db.quotation.findFirst({
     where: { number: number.toUpperCase(), businessId: business.id },
     include: { items: { orderBy: { id: "asc" } }, order: { select: { orderNumber: true } } },
@@ -97,7 +99,7 @@ export default async function BusinessQuotationPage({ params }: PageProps<"/busi
               )}
               {q.staffNote && (
                 <p>
-                  <span className="font-bold">From Cool Kick:</span> {q.staffNote}
+                  <span className="font-bold">From {shopName}:</span> {q.staffNote}
                 </p>
               )}
             </section>

@@ -3,6 +3,7 @@ import { cache } from "react";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import type { ProductCardData, ProductTag, Size } from "@/lib/types";
+import { getStockBlockedProductIds } from "@/server/ingredient-stock";
 
 const cardInclude = {
   category: { select: { name: true, slug: true } },
@@ -26,7 +27,7 @@ async function ratingsFor(productIds: string[]) {
   );
 }
 
-function toCard(p: ProductWithCard, rating?: { avg: number; count: number }): ProductCardData {
+function toCard(p: ProductWithCard, rating: { avg: number; count: number } | undefined, blocked: boolean): ProductCardData {
   const available = p.variants
     .filter((v) => v.isAvailable)
     .sort((a, b) => SIZE_ORDER.indexOf(a.size) - SIZE_ORDER.indexOf(b.size));
@@ -38,7 +39,8 @@ function toCard(p: ProductWithCard, rating?: { avg: number; count: number }): Pr
     description: p.description,
     image: p.image,
     tags: p.tags as ProductTag[],
-    isAvailable: p.isAvailable && available.length > 0,
+    // `blocked` = an ingredient in its recipe has no usable stock (used up or expired).
+    isAvailable: p.isAvailable && !blocked && available.length > 0,
     categoryName: p.category.name,
     fromPrice: available.length ? Math.min(...available.map((v) => v.price)) : 0,
     defaultSize: def?.size ?? null,
@@ -49,8 +51,8 @@ function toCard(p: ProductWithCard, rating?: { avg: number; count: number }): Pr
 }
 
 async function toCards(products: ProductWithCard[]) {
-  const ratings = await ratingsFor(products.map((p) => p.id));
-  return products.map((p) => toCard(p, ratings.get(p.id)));
+  const [ratings, blocked] = await Promise.all([ratingsFor(products.map((p) => p.id)), getStockBlockedProductIds()]);
+  return products.map((p) => toCard(p, ratings.get(p.id), blocked.has(p.id)));
 }
 
 const visibleProduct = { isActive: true, category: { isActive: true } } satisfies Prisma.ProductWhereInput;
@@ -137,7 +139,7 @@ export const getProductBySlug = cache(async (slug: string) => {
     },
   });
   if (!p) return null;
-  const ratings = await ratingsFor([p.id]);
+  const [ratings, blocked] = await Promise.all([ratingsFor([p.id]), getStockBlockedProductIds()]);
   const r = ratings.get(p.id);
   const reviews = await db.review.findMany({
     where: { productId: p.id, isApproved: true },
@@ -153,7 +155,7 @@ export const getProductBySlug = cache(async (slug: string) => {
     image: p.image,
     ingredients: p.ingredients,
     tags: p.tags as ProductTag[],
-    isAvailable: p.isAvailable && p.variants.some((v) => v.isAvailable),
+    isAvailable: p.isAvailable && !blocked.has(p.id) && p.variants.some((v) => v.isAvailable),
     allowSugarChoice: p.allowSugarChoice,
     allowIceChoice: p.allowIceChoice,
     category: p.category,

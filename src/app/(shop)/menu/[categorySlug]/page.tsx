@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MenuView } from "@/components/shop/menu-view";
 import { getCategories } from "@/server/catalog";
+import { getShopName } from "@/server/brand";
 
 export async function generateMetadata({ params }: PageProps<"/menu/[categorySlug]">): Promise<Metadata> {
   const { categorySlug } = await params;
@@ -9,7 +10,7 @@ export async function generateMetadata({ params }: PageProps<"/menu/[categorySlu
   if (!category) return { title: "Menu" };
   return {
     title: `${category.name} – Menu`,
-    description: category.description ?? `Order ${category.name} from Cool Kick.`,
+    description: category.description ?? `Order ${category.name} from ${await getShopName()}.`,
     openGraph: category.image ? { images: [category.image] } : undefined,
   };
 }

@@ -17,4 +17,4 @@ export function formatPhone(phone: string) {
   return local.length === 10 ? `${cc}${local.slice(0, 5)} ${local.slice(5)}` : phone;
 }
 
-export const DEFAULT_WHATSAPP_MESSAGE = "Hi Cool Kick! 🍹 I'd like to place an order.";
+export const defaultWhatsappMessage = (shopName: string) => `Hi ${shopName}! 🍹 I'd like to place an order.`;

@@ -168,9 +168,9 @@
 }
 
 @utility glass {
-  background: rgb(255 255 255 / 0.88);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgb(255 255 255 / 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 @utility pb-safe {

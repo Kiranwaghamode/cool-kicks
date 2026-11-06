@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
 import { adminAction } from "@/server/auth-guard";
 import { audit } from "@/server/audit";
+import { consumeIngredient } from "@/server/ingredient-stock";
 import { addDays, istDateKey, parseISTDate, startOfDayIST } from "@/lib/dates";
 
 function refresh() {
@@ -88,8 +89,7 @@ export async function createBatch(input: BatchInput) {
         if (v.deductIngredients) {
           for (const r of recipe) {
             const qty = new Prisma.Decimal(r.quantityPerUnit).mul(v.quantity);
-            await tx.ingredient.update({ where: { id: r.ingredientId }, data: { currentStock: { decrement: qty } } });
-            await tx.stockMovement.create({ data: { ingredientId: r.ingredientId, change: qty.neg(), reason: "USAGE", note: `Batch ${number}`, staffId: staff.id } });
+            await consumeIngredient(tx, r.ingredientId, qty, { note: `Batch ${number}`, staffId: staff.id });
           }
         }
         await audit(

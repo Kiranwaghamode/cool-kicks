@@ -1,9 +1,9 @@
-// DRAFT policy text for Cool Kick. The owner should review before launch.
+// DRAFT policy text. The shop name comes from Admin → Settings. The owner should review before launch.
 import type { PolicySection } from "@/components/shop/policy-page";
 
 export const POLICY_LAST_UPDATED = "25 October 2026";
 
-export const PRIVACY_SECTIONS: PolicySection[] = [
+export const privacySections = (shopName: string): PolicySection[] => [
   {
     id: "what-we-collect",
     title: "Information we collect",
@@ -62,7 +62,7 @@ export const PRIVACY_SECTIONS: PolicySection[] = [
     title: "How we protect it",
     body: (
       <p>
-        Customer phone numbers and addresses are visible only to logged-in Cool Kick staff. Our admin dashboard is
+        Customer phone numbers and addresses are visible only to logged-in {shopName} staff. Our admin dashboard is
         protected by passwords and role-based access, and the website uses HTTPS encryption.
       </p>
     ),
@@ -94,13 +94,13 @@ export const PRIVACY_SECTIONS: PolicySection[] = [
   },
 ];
 
-export const TERMS_SECTIONS: PolicySection[] = [
+export const termsSections = (shopName: string): PolicySection[] => [
   {
     id: "about",
     title: "About these terms",
     body: (
       <p>
-        These terms apply when you browse the Cool Kick website or place an order for pickup or delivery. By placing an
+        These terms apply when you browse the {shopName} website or place an order for pickup or delivery. By placing an
         order you agree to them.
       </p>
     ),
@@ -184,7 +184,7 @@ export const TERMS_SECTIONS: PolicySection[] = [
   },
 ];
 
-export const REFUND_SECTIONS: PolicySection[] = [
+export const refundSections = (): PolicySection[] => [
   {
     id: "cancel-before",
     title: "Cancelling your order",
